@@ -55,6 +55,7 @@ const formatAddress = (address: any) => {
 export const InvoicePDFView = ({ invoice, branding, organization }: { invoice: any, branding: any, organization: any }) => {
     // Calculate verified payments and balance due
     const verifiedPayments = (invoice.payments || []).filter((p: any) => 
+        ['Verified', 'Received', 'PAID', 'PAID_SUCCESS', 'Verified Payment', 'PAID_SUCCESSFUL', 'Record Payment', 'Partially Paid'].includes(p.status.split(' (')[0]) || 
         ['Verified', 'Received', 'PAID', 'PAID_SUCCESS', 'Verified Payment', 'PAID_SUCCESSFUL'].includes(p.status)
     );
     const amountPaid = verifiedPayments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);

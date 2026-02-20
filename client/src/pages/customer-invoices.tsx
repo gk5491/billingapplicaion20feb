@@ -259,11 +259,7 @@ export default function CustomerInvoicesPage() {
                                             <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                                             <TableCell className="text-right font-bold text-slate-900 font-display">₹{invoice.total?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</TableCell>
                                             <TableCell className="text-right font-bold text-slate-600 font-display">
-                                                ₹{(Number(invoice.total || 0) - 
-                                                    (invoice.payments || [])
-                                                        .filter((p: any) => ['Verified', 'Received', 'PAID', 'PAID_SUCCESS'].includes(p.status))
-                                                        .reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0)
-                                                ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                ₹{(Number(invoice.balanceDue || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                             </TableCell>
                                             <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex items-center justify-end gap-2">

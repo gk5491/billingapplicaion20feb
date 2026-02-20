@@ -152,7 +152,7 @@ export default function InvoiceDetailPanel({ invoice, onClose, onRefresh, isAdmi
 
     // Calculate verified balance
     const verifiedPayments = (invoice.payments || []).filter((p: any) => 
-        ['Verified', 'Received', 'PAID', 'PAID_SUCCESS'].includes(p.status)
+        ['Verified', 'Received', 'PAID', 'PAID_SUCCESS', 'Verified Payment', 'PAID_SUCCESSFUL'].includes(p.status)
     );
     const amountPaid = verifiedPayments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
     const totalAmount = Number(invoice.total || invoice.amount || 0);
