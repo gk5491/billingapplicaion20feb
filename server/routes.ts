@@ -6636,6 +6636,25 @@ export async function registerRoutes(
         return res.status(404).json({ success: false, message: "Payment not found" });
       }
 
+      const invoicesData = readInvoicesData();
+      if (payment.invoices && Array.isArray(payment.invoices)) {
+        payment.invoices = payment.invoices.map((payInv: any) => {
+          const fullInvoice = invoicesData.invoices.find((inv: any) => inv.id === payInv.invoiceId);
+          if (fullInvoice) {
+            return {
+              ...payInv,
+              items: fullInvoice.items || [],
+              total: fullInvoice.total || payInv.invoiceAmount || 0,
+              subTotal: fullInvoice.subTotal || 0,
+              balanceDue: fullInvoice.balanceDue ?? payInv.amountDue ?? 0,
+              invoiceStatus: fullInvoice.status || '',
+              dueDate: fullInvoice.dueDate || '',
+            };
+          }
+          return payInv;
+        });
+      }
+
       res.json({ success: true, data: payment });
     } catch (error) {
       res.status(500).json({ success: false, message: "Failed to fetch payment" });

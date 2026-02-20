@@ -11,3 +11,4 @@
 [x] 11. Implement balance due reduction logic upon payment verification
 [x] 12. Ensure admin and customer views reflect updated balance after verification
 [x] 13. Re-provision database and verify app loads in Replit environment
+[x] 14. Enhanced payment receipt to show full invoice details with item breakdown, invoice number, total amount, and balance due

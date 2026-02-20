@@ -154,32 +154,90 @@ export function UnifiedPaymentReceipt({
                     </div>
                 </div>
 
-                {/* Invoices Table */}
+                {/* Invoice Details with Items */}
                 {payment.invoices && payment.invoices.length > 0 && (
                     <div style={{ marginBottom: '40px' }}>
-                        <h4 style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px', margin: '0 0 16px 0' }}>
-                            PAYMENT FOR
-                        </h4>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ backgroundColor: '#1e40af', color: '#ffffff' }}>
-                                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '4px 0 0 0' }}>Invoice Number</th>
-                                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoice Date</th>
-                                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Invoice Amount</th>
-                                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right', borderRadius: '0 4px 0 0' }}>Amount Paid</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {payment.invoices.map((invoice: any, index: number) => (
-                                    <tr key={index} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: '700', color: '#1e40af' }}>{invoice.invoiceNumber || '-'}</td>
-                                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#475569' }}>{invoice.date ? formatDate(invoice.date) : '-'}</td>
-                                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#475569', textAlign: 'right' }}>{formatCurrency(invoice.total || invoice.amount || 0)}</td>
-                                        <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: '800', color: '#16a34a', textAlign: 'right' }}>{formatCurrency(invoice.paidAmount || invoice.paymentAmount || invoice.amount || 0)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        {payment.invoices.map((invoice: any, invIndex: number) => (
+                            <div key={invIndex} style={{ marginBottom: invIndex < payment.invoices.length - 1 ? '32px' : '0', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                                <div style={{ backgroundColor: '#1e40af', color: '#ffffff', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.02em' }}>
+                                            {invoice.invoiceNumber || '-'}
+                                        </span>
+                                        <span style={{ fontSize: '11px', fontWeight: '600', opacity: 0.85 }}>
+                                            Date: {invoice.invoiceDate ? formatDate(invoice.invoiceDate) : (invoice.date ? formatDate(invoice.date) : '-')}
+                                        </span>
+                                        {invoice.dueDate && (
+                                            <span style={{ fontSize: '11px', fontWeight: '600', opacity: 0.85 }}>
+                                                Due: {formatDate(invoice.dueDate)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {invoice.invoiceStatus && (
+                                        <span style={{
+                                            fontSize: '10px',
+                                            fontWeight: '700',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.05em',
+                                            backgroundColor: invoice.invoiceStatus === 'Paid' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.15)',
+                                            padding: '3px 10px',
+                                            borderRadius: '4px'
+                                        }}>
+                                            {invoice.invoiceStatus}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {invoice.items && invoice.items.length > 0 && (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                        <thead>
+                                            <tr style={{ backgroundColor: '#f8fafc' }}>
+                                                <th style={{ padding: '10px 20px', fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>#</th>
+                                                <th style={{ padding: '10px 20px', fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>Item</th>
+                                                <th style={{ padding: '10px 20px', fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>Qty</th>
+                                                <th style={{ padding: '10px 20px', fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right', borderBottom: '1px solid #e2e8f0' }}>Rate</th>
+                                                <th style={{ padding: '10px 20px', fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right', borderBottom: '1px solid #e2e8f0' }}>Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {invoice.items.map((item: any, itemIndex: number) => (
+                                                <tr key={itemIndex} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td style={{ padding: '10px 20px', fontSize: '12px', color: '#64748b' }}>{itemIndex + 1}</td>
+                                                    <td style={{ padding: '10px 20px' }}>
+                                                        <p style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', margin: '0' }}>{item.name || '-'}</p>
+                                                        {item.description && (
+                                                            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>{item.description}</p>
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '10px 20px', fontSize: '13px', color: '#475569', textAlign: 'center' }}>{item.quantity || 0} {item.unit || ''}</td>
+                                                    <td style={{ padding: '10px 20px', fontSize: '13px', color: '#475569', textAlign: 'right' }}>{formatCurrency(item.rate || 0)}</td>
+                                                    <td style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '700', color: '#0f172a', textAlign: 'right' }}>{formatCurrency(item.amount || 0)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+
+                                <div style={{ backgroundColor: '#f8fafc', padding: '14px 20px', borderTop: '1px solid #e2e8f0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                        <div style={{ width: '280px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Invoice Total</span>
+                                                <span style={{ fontSize: '13px', color: '#0f172a', fontWeight: '700' }}>{formatCurrency(invoice.total || invoice.invoiceAmount || 0)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '600' }}>Amount Paid</span>
+                                                <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '800' }}>{formatCurrency(invoice.paymentAmount || invoice.paidAmount || 0)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
+                                                <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: '700' }}>Balance Due</span>
+                                                <span style={{ fontSize: '13px', color: '#ef4444', fontWeight: '800' }}>{formatCurrency(invoice.balanceDue ?? invoice.amountDue ?? 0)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
 
