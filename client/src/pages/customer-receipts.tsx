@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -9,7 +9,9 @@ import {
     Download,
     Eye,
     Printer,
-    CheckCircle2
+    CheckCircle2,
+    X,
+    FileText
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -25,19 +27,76 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
+import { UnifiedPaymentReceipt } from "@/components/UnifiedPaymentReceipt";
+import { useOrganization } from "@/context/OrganizationContext";
 
 export default function CustomerReceiptsPage() {
     const { user } = useAuthStore();
+    const { toast } = useToast();
+    const { currentOrganization } = useOrganization();
     const [searchTerm, setSearchTerm] = useState("");
     const [, setLocation] = useLocation();
     const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
+    const [showPdfView, setShowPdfView] = useState(true);
+    const [branding, setBranding] = useState<any>(null);
 
     const { data: receipts, isLoading } = useQuery<any>({
         queryKey: ["/api/customer/receipts", { customerId: user?.id }],
         enabled: !!user?.id,
     });
+
+    useEffect(() => {
+        fetchBranding();
+    }, []);
+
+    const fetchBranding = async () => {
+        try {
+            const response = await fetch("/api/branding");
+            const data = await response.json();
+            if (data.success) {
+                setBranding(data.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch branding:", error);
+        }
+    };
+
+    const handleDownloadPDF = async (receipt: any) => {
+        toast({ title: "Preparing download...", description: "Please wait while we generate the PDF." });
+
+        try {
+            const { generatePDFFromElement } = await import("@/lib/pdf-utils");
+            await generatePDFFromElement("payment-pdf-content", `Payment-${receipt.paymentNumber}.pdf`);
+
+            toast({
+                title: "PDF Downloaded",
+                description: `${receipt.paymentNumber}.pdf has been downloaded successfully.`
+            });
+        } catch (error) {
+            console.error("PDF generation error:", error);
+            toast({
+                title: "Failed to download PDF",
+                description: "Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handlePrint = async (receipt: any) => {
+        toast({ title: "Preparing print...", description: "Please wait while we generate the receipt preview." });
+
+        try {
+            const { robustIframePrint } = await import("@/lib/robust-print");
+            await robustIframePrint('payment-pdf-content', `Payment_${receipt.paymentNumber}`);
+        } catch (error) {
+            console.error('Print failed:', error);
+            toast({ title: "Print failed", variant: "destructive" });
+        }
+    };
 
     const filteredReceipts = receipts?.data?.filter((rec: any) => {
         return rec.paymentNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -117,10 +176,16 @@ export default function CustomerReceiptsPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-slate-100 text-slate-500" onClick={() => setSelectedReceipt(receipt)}>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-slate-100 text-slate-500" onClick={() => {
+                                                setSelectedReceipt(receipt);
+                                                setShowPdfView(true);
+                                            }}>
                                                 <Eye className="h-4 w-4" />
                                             </Button>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-slate-100 text-slate-500">
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-slate-100 text-slate-500" onClick={() => {
+                                                setSelectedReceipt(receipt);
+                                                handleDownloadPDF(receipt);
+                                            }}>
                                                 <Download className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -133,45 +198,76 @@ export default function CustomerReceiptsPage() {
             </div>
 
             <Sheet open={!!selectedReceipt} onOpenChange={() => setSelectedReceipt(null)}>
-                <SheetContent className="sm:max-w-md p-0 w-full">
-                    <div className="p-6 h-full overflow-auto flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                            <CheckCircle2 className="h-8 w-8 text-green-600" />
-                        </div>
-
-                        <h2 className="text-2xl font-bold text-slate-900 mb-2">Payment Receipt</h2>
-                        <p className="text-slate-500 mb-8">Payment of ₹{selectedReceipt?.amount?.toLocaleString('en-IN')} received</p>
-
-                        <div className="w-full bg-slate-50 rounded-lg p-4 space-y-4 mb-8 text-left">
-                            <div className="flex justify-between border-b border-slate-200 pb-2">
-                                <span className="text-slate-500">Receipt No</span>
-                                <span className="font-medium">{selectedReceipt?.paymentNumber}</span>
+                <SheetContent className="sm:max-w-[90vw] md:max-w-[70vw] lg:max-w-[60vw] xl:max-w-[50vw] p-0 w-full">
+                    <div className="flex flex-col h-full bg-slate-50">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
+                            <div className="flex items-center gap-4">
+                                <h2 className="text-lg font-bold text-slate-900">{selectedReceipt?.paymentNumber}</h2>
+                                <div className="flex items-center gap-2 ml-4">
+                                    <Label htmlFor="pdf-view" className="text-xs text-slate-500 font-medium">PDF View</Label>
+                                    <Switch id="pdf-view" checked={showPdfView} onCheckedChange={setShowPdfView} className="scale-75" />
+                                </div>
                             </div>
-                            <div className="flex justify-between border-b border-slate-200 pb-2">
-                                <span className="text-slate-500">Date</span>
-                                <span className="font-medium">{selectedReceipt && format(new Date(selectedReceipt.date), "PPP")}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-slate-200 pb-2">
-                                <span className="text-slate-500">Payment Mode</span>
-                                <span className="font-medium">{selectedReceipt?.mode || 'Online'}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-slate-200 pb-2">
-                                <span className="text-slate-500">Transaction ID</span>
-                                <span className="font-medium">{selectedReceipt?.reference || '-'}</span>
-                            </div>
-                            <div className="flex justify-between pt-2">
-                                <span className="font-bold text-slate-900">Amount Paid</span>
-                                <span className="font-bold text-slate-900">₹{selectedReceipt?.amount?.toLocaleString('en-IN')}</span>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="sm" className="gap-2" onClick={() => handleDownloadPDF(selectedReceipt)}>
+                                    <Download className="h-4 w-4" /> Download
+                                </Button>
+                                <Button variant="outline" size="sm" className="gap-2" onClick={() => handlePrint(selectedReceipt)}>
+                                    <Printer className="h-4 w-4" /> Print
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => setSelectedReceipt(null)} className="rounded-full">
+                                    <X className="h-5 w-5" />
+                                </Button>
                             </div>
                         </div>
 
-                        <div className="w-full space-y-3">
-                            <Button className="w-full gap-2" variant="outline">
-                                <Download className="h-4 w-4" /> Download Receipt
-                            </Button>
-                            <Button className="w-full gap-2" variant="outline" onClick={() => window.print()}>
-                                <Printer className="h-4 w-4" /> Print
-                            </Button>
+                        <div className="flex-1 overflow-auto p-6 flex flex-col items-center">
+                            {showPdfView ? (
+                                <div id="payment-pdf-content" className="shadow-xl bg-white w-full max-w-[210mm] border border-slate-200" style={{ minHeight: '296mm' }}>
+                                    <UnifiedPaymentReceipt
+                                        payment={{
+                                            ...selectedReceipt,
+                                            customerName: user?.name || selectedReceipt?.customerName || "Customer",
+                                            customerEmail: user?.username || selectedReceipt?.customerEmail || ""
+                                        }}
+                                        branding={branding}
+                                        organization={currentOrganization}
+                                        isPreview={true}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="w-full max-w-2xl bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <CheckCircle2 className="h-8 w-8 text-green-600" />
+                                    </div>
+
+                                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Payment Receipt</h2>
+                                    <p className="text-slate-500 mb-8">Payment of ₹{selectedReceipt?.amount?.toLocaleString('en-IN')} received</p>
+
+                                    <div className="w-full bg-slate-50 rounded-lg p-6 space-y-4 mb-8 text-left border border-slate-100">
+                                        <div className="flex justify-between border-b border-slate-200 pb-3">
+                                            <span className="text-slate-500 font-medium">Receipt No</span>
+                                            <span className="font-bold text-slate-900">{selectedReceipt?.paymentNumber}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-slate-200 pb-3">
+                                            <span className="text-slate-500 font-medium">Date</span>
+                                            <span className="font-bold text-slate-900">{selectedReceipt && format(new Date(selectedReceipt.date), "PPP")}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-slate-200 pb-3">
+                                            <span className="text-slate-500 font-medium">Payment Mode</span>
+                                            <span className="font-bold text-slate-900">{selectedReceipt?.mode || 'Online'}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-slate-200 pb-3">
+                                            <span className="text-slate-500 font-medium">Transaction ID</span>
+                                            <span className="font-bold text-slate-900">{selectedReceipt?.reference || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between pt-3">
+                                            <span className="font-bold text-slate-900 text-lg">Amount Paid</span>
+                                            <span className="font-bold text-green-600 text-lg">₹{selectedReceipt?.amount?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </SheetContent>
@@ -179,3 +275,4 @@ export default function CustomerReceiptsPage() {
         </div>
     );
 }
+
