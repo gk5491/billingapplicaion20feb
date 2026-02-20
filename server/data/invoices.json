@@ -105,9 +105,9 @@
       ],
       "subTotal": 60000,
       "total": 60000,
-      "amountPaid": 40000,
-      "balanceDue": 20000,
-      "status": "Partially Paid",
+      "amountPaid": 60000,
+      "balanceDue": 0,
+      "status": "Paid",
       "sourceType": "quote",
       "sourceId": "24",
       "sourceNumber": "QT-000024",
@@ -140,6 +140,13 @@
         {
           "id": "4",
           "timestamp": "2026-02-20T05:00:07.794Z",
+          "action": "payment_recorded",
+          "description": "Payment of ₹20,000 recorded and awaiting verification",
+          "user": "Customer Ganesh"
+        },
+        {
+          "id": "5",
+          "timestamp": "2026-02-20T05:26:32.006Z",
           "action": "payment_recorded",
           "description": "Payment of ₹20,000 recorded and awaiting verification",
           "user": "Customer Ganesh"

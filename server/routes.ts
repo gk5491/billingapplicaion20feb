@@ -3177,10 +3177,10 @@ export async function registerRoutes(
       // Recalculate balance to ensure it matches verified payments
       const paymentsData = readPaymentsReceivedData();
       const allPayments = paymentsData.paymentsReceived.filter((p: any) => 
-        p.invoiceId === existingInvoice.id || (p.invoices && p.invoices.some((ai: any) => (ai.id === existingInvoice.id || ai.invoiceId === existingInvoice.id)))
+        p.customerId === existingInvoice.customerId && (p.invoiceId === existingInvoice.id || (p.invoices && p.invoices.some((ai: any) => (ai.id === existingInvoice.id || ai.invoiceId === existingInvoice.id))))
       );
       const verifiedPayments = allPayments.filter((p: any) => 
-        ['Verified', 'Received', 'PAID', 'PAID_SUCCESS'].includes(p.status)
+        ['Verified', 'Received', 'PAID', 'PAID_SUCCESS', 'Verified Payment', 'PAID_SUCCESSFUL'].includes(p.status)
       );
       const totalPaid = verifiedPayments.reduce((sum: number, p: any) => {
         if (p.invoiceId === existingInvoice.id) return sum + Number(p.amount || 0);
@@ -3190,6 +3190,13 @@ export async function registerRoutes(
 
       existingInvoice.amountPaid = totalPaid;
       existingInvoice.balanceDue = Math.max(0, Number(existingInvoice.total || 0) - totalPaid);
+
+      // Update status if it's not manually overridden or if it should be Paid/Partially Paid
+      if (existingInvoice.balanceDue <= 0 && Number(existingInvoice.total) > 0) {
+        existingInvoice.status = 'Paid';
+      } else if (existingInvoice.amountPaid > 0) {
+        existingInvoice.status = 'Partially Paid';
+      }
 
       data.invoices[invoiceIndex] = existingInvoice;
       writeInvoicesData(data);

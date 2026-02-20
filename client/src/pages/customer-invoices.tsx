@@ -105,18 +105,18 @@ export default function CustomerInvoicesPage() {
         if (normalizedStatus === 'DRAFT') return false;
 
         const matchesTab = activeTab === "all" ||
-            (activeTab === "paid" && normalizedStatus === "PAID") ||
+            (activeTab === "paid" && (normalizedStatus === "PAID" || normalizedStatus === "PAID_SUCCESS")) ||
             (activeTab === "partially_paid" && (normalizedStatus === "PARTIALLY PAID" || normalizedStatus === "PARTIALLY_PAID")) ||
             (activeTab === "unpaid" && (normalizedStatus === "SENT" || normalizedStatus === "OVERDUE" || normalizedStatus === "PENDING VERIFICATION"));
         return matchesSearch && matchesTab;
     }).map((inv: any) => {
-        // Calculate balance considering only verified payments
+        // Calculate balance considering all verified payment variations
         const verifiedPayments = (inv.payments || []).filter((p: any) => 
-            p.status === 'Verified' || p.status === 'PAID' || p.status === 'PAID_SUCCESS'
+            ['Verified', 'Received', 'PAID', 'PAID_SUCCESS', 'Verified Payment', 'PAID_SUCCESSFUL'].includes(p.status)
         );
-        const paidAmount = verifiedPayments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
+        const paidAmount = (Number(inv.amountPaid) || 0) > 0 ? Number(inv.amountPaid) : verifiedPayments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
         const totalAmount = Number(inv.total || 0);
-        const balance = Math.max(0, totalAmount - paidAmount);
+        const balance = inv.balanceDue !== undefined ? Number(inv.balanceDue) : Math.max(0, totalAmount - paidAmount);
         
         let displayStatus = inv.status;
         if (balance <= 0 && totalAmount > 0) {
