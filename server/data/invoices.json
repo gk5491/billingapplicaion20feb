@@ -543,9 +543,9 @@
       ],
       "subTotal": 75000,
       "total": 75000,
-      "amountPaid": 55000,
-      "balanceDue": 20000,
-      "status": "Partially Paid",
+      "amountPaid": 75000,
+      "balanceDue": 0,
+      "status": "Paid",
       "sourceType": "quote",
       "sourceId": "18",
       "sourceNumber": "QT-000018",
@@ -601,6 +601,13 @@
           "timestamp": "2026-02-20T04:46:09.472Z",
           "action": "payment_recorded",
           "description": "Payment of ₹15,000 recorded and awaiting verification",
+          "user": "Customer Ganesh"
+        },
+        {
+          "id": "8",
+          "timestamp": "2026-02-20T05:34:36.121Z",
+          "action": "payment_recorded",
+          "description": "Payment of ₹20,000 recorded and awaiting verification",
           "user": "Customer Ganesh"
         }
       ]
@@ -725,8 +732,8 @@
       ],
       "subTotal": 15000,
       "total": 15000,
-      "amountPaid": 0,
-      "balanceDue": 14900,
+      "amountPaid": 5100,
+      "balanceDue": 9900,
       "status": "Partially Paid",
       "sourceType": "quote",
       "sourceId": "15",
@@ -769,6 +776,13 @@
           "timestamp": "2026-02-19T05:54:36.963Z",
           "action": "payment_recorded",
           "description": "Payment of ₹100 recorded and awaiting verification",
+          "user": "Customer Ganesh"
+        },
+        {
+          "id": "6",
+          "timestamp": "2026-02-20T05:35:56.200Z",
+          "action": "payment_recorded",
+          "description": "Payment of ₹5,000 recorded and awaiting verification",
           "user": "Customer Ganesh"
         }
       ]
@@ -818,9 +832,9 @@
       ],
       "subTotal": 1215000,
       "total": 1215000,
-      "amountPaid": 0,
-      "balanceDue": 1215000,
-      "status": "Sent",
+      "amountPaid": 15000,
+      "balanceDue": 1200000,
+      "status": "Partially Paid",
       "sourceType": "quote",
       "sourceId": "14",
       "sourceNumber": "QT-000014",
@@ -856,6 +870,13 @@
           "action": "sent",
           "description": "Invoice has been sent",
           "user": "Admin User"
+        },
+        {
+          "id": "5",
+          "timestamp": "2026-02-20T05:37:15.728Z",
+          "action": "payment_recorded",
+          "description": "Payment of ₹15,000 recorded and awaiting verification",
+          "user": "Customer Ganesh"
         }
       ]
     },
