@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation } from "wouter";
 import { useOrganization } from "@/context/OrganizationContext";
@@ -37,7 +37,12 @@ import {
     Tag,
     ChevronRight,
     RefreshCw,
-    Loader2
+    Loader2,
+    Bold,
+    Italic,
+    Underline,
+    Link2,
+    Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,12 +92,34 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { TablePagination } from "@/components/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
 // removed import { formatCurrency } from "@/lib/utils";
 import { robustIframePrint } from "@/lib/robust-print";
 import { generatePDFFromElement } from "@/lib/pdf-utils";
+import {
+    startOfMonth,
+    endOfMonth,
+    subMonths,
+    startOfQuarter,
+    endOfQuarter,
+    startOfYear,
+    endOfYear,
+    isWithinInterval,
+    isBefore,
+    parseISO
+} from "date-fns";
+import { toPng } from "html-to-image";
+import { jsPDF } from "jspdf";
+import * as XLSX from "xlsx";
 
 interface ContactPerson {
     salutation?: string;
@@ -220,6 +247,81 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 };
 
+const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return {
+        date: date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        time: date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    };
+};
+
+const formatVendorAddress = (address: any) => {
+    if (!address) return ['-'];
+    const parts = [address.street1, address.street2, address.city, address.state, address.pinCode, address.country].filter(Boolean);
+    return parts.length > 0 ? parts : ['-'];
+};
+
+const getStatementDateRange = (period: string) => {
+    const now = new Date();
+    let start = startOfMonth(now);
+    let end = endOfMonth(now);
+    switch (period) {
+        case "last-month": {
+            const lastMonth = subMonths(now, 1);
+            start = startOfMonth(lastMonth);
+            end = endOfMonth(lastMonth);
+            break;
+        }
+        case "this-quarter":
+            start = startOfQuarter(now);
+            end = endOfQuarter(now);
+            break;
+        case "this-year":
+            start = startOfYear(now);
+            end = endOfYear(now);
+            break;
+        case "this-month":
+        default:
+            start = startOfMonth(now);
+            end = endOfMonth(now);
+            break;
+    }
+    return { start, end };
+};
+
+const RenderComment = ({ text }: { text: string }) => {
+    let parts: (string | React.ReactElement)[] = [text];
+    const boldRegex = /\*\*(.*?)\*\*|__(.*?)__/g;
+    parts = parts.flatMap((part) => {
+        if (typeof part !== 'string') return [part];
+        const subParts: (string | React.ReactElement)[] = [];
+        let lastIndex = 0;
+        let match;
+        while ((match = boldRegex.exec(part)) !== null) {
+            if (match.index > lastIndex) subParts.push(part.substring(lastIndex, match.index));
+            subParts.push(<strong key={`bold-${match.index}`}>{match[1] || match[2]}</strong>);
+            lastIndex = boldRegex.lastIndex;
+        }
+        if (lastIndex < part.length) subParts.push(part.substring(lastIndex));
+        return subParts;
+    });
+    const italicRegex = /\*(.*?)\*|_(.*?)_/g;
+    parts = parts.flatMap((part) => {
+        if (typeof part !== 'string') return [part];
+        const subParts: (string | React.ReactElement)[] = [];
+        let lastIndex = 0;
+        let match;
+        while ((match = italicRegex.exec(part)) !== null) {
+            if (match.index > lastIndex) subParts.push(part.substring(lastIndex, match.index));
+            subParts.push(<em key={`italic-${match.index}`}>{match[1] || match[2]}</em>);
+            lastIndex = italicRegex.lastIndex;
+        }
+        if (lastIndex < part.length) subParts.push(part.substring(lastIndex));
+        return subParts;
+    });
+    return <>{parts}</>;
+};
+
 interface VendorDetailPanelProps {
     vendor: Vendor;
     onClose: () => void;
@@ -233,8 +335,11 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: VendorDetailPa
     const [, setLocation] = useLocation();
     const { toast } = useToast();
     const [activeTab, setActiveTab] = useState("overview");
+    const [isDownloading, setIsDownloading] = useState(false);
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState("");
+    const [isAddingComment, setIsAddingComment] = useState(false);
+    const commentRef = useRef<HTMLTextAreaElement>(null);
     const [transactions, setTransactions] = useState<Record<string, Transaction[]>>({
         bills: [],
         billPayments: [],
@@ -247,42 +352,6 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: VendorDetailPa
     const [activities, setActivities] = useState<ActivityItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [fullVendor, setFullVendor] = useState<Vendor>(vendor);
-    const formatDateTime = (dateString: string) => {
-        const date = new Date(dateString);
-        return {
-            date: date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-            time: date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
-        };
-    };
-
-    const combinedTransactions = useMemo(() => {
-        const all = [
-            ...(transactions.bills || []).map(b => ({ ...b, tType: 'Bill', displayAmount: b.amount, isCredit: true })),
-            ...(transactions.billPayments || []).map(p => ({ ...p, tType: 'Payment', displayAmount: p.amount, isCredit: false })),
-            ...(transactions.expenses || []).map(e => ({ ...e, tType: 'Expense', displayAmount: e.amount, isCredit: true })),
-            ...(transactions.vendorCredits || []).map(vc => ({ ...vc, tType: 'Credit', displayAmount: vc.amount, isCredit: false }))
-        ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-        let runningBalance = fullVendor.openingBalance || 0;
-        return all.map(t => {
-            if (t.isCredit) {
-                runningBalance += t.displayAmount;
-            } else {
-                runningBalance -= t.displayAmount;
-            }
-            return { ...t, runningBalance };
-        });
-    }, [transactions, fullVendor.openingBalance]);
-
-    const statementPeriod = useMemo(() => {
-        const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        return {
-            start: formatDate(start.toISOString()),
-            end: formatDate(end.toISOString())
-        };
-    }, []);
 
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
         bills: true,
@@ -291,6 +360,20 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: VendorDetailPa
         purchaseOrders: false,
         vendorCredits: false
     });
+
+    const [sectionFilters, setSectionFilters] = useState<Record<string, string>>({
+        bills: 'All',
+        billPayments: 'All',
+        expenses: 'All',
+        purchaseOrders: 'All',
+        vendorCredits: 'All'
+    });
+
+    const [statementPeriod, setStatementPeriod] = useState("this-month");
+    const [statementFilter, setStatementFilter] = useState("all");
+
+    const [expensePeriod, setExpensePeriod] = useState("last-6-months");
+    const [expenseMethod, setExpenseMethod] = useState("accrual");
 
     useEffect(() => {
         if (vendor.id) {
@@ -349,7 +432,8 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: VendorDetailPa
     };
 
     const handleAddComment = async () => {
-        if (!newComment.trim()) return;
+        if (!newComment.trim() || isAddingComment) return;
+        setIsAddingComment(true);
         try {
             const response = await fetch(`/api/vendors/${vendor.id}/comments`, {
                 method: 'POST',
@@ -358,28 +442,146 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: VendorDetailPa
             });
             if (response.ok) {
                 const data = await response.json();
-                setComments([...comments, data.data]);
+                setComments([data.data, ...comments]);
                 setNewComment("");
                 toast({ title: "Comment added successfully" });
             }
         } catch (error) {
             toast({ title: "Failed to add comment", variant: "destructive" });
+        } finally {
+            setIsAddingComment(false);
         }
     };
 
-    const handlePrint = () => {
-        toast({ title: "Preparing print...", description: "Opening print dialog." });
-        robustIframePrint("vendor-statement");
+    const handleDeleteComment = async (commentId: string) => {
+        try {
+            const response = await fetch(`/api/vendors/${vendor.id}/comments/${commentId}`, {
+                method: 'DELETE'
+            });
+            if (response.ok) {
+                setComments(comments.filter(c => c.id !== commentId));
+                toast({ title: "Comment deleted successfully" });
+            }
+        } catch (error) {
+            toast({ title: "Failed to delete comment", variant: "destructive" });
+        }
+    };
+
+    const applyFormatting = (format: 'bold' | 'italic' | 'underline') => {
+        const textarea = commentRef.current;
+        if (!textarea) return;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const selectedText = text.substring(start, end);
+        let formattedText = "";
+        switch (format) {
+            case 'bold': formattedText = `**${selectedText}**`; break;
+            case 'italic': formattedText = `*${selectedText}*`; break;
+            case 'underline': formattedText = `__${selectedText}__`; break;
+        }
+        const newValue = text.substring(0, start) + formattedText + text.substring(end);
+        setNewComment(newValue);
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + formattedText.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    const handlePrint = async () => {
+        toast({ title: "Preparing print...", description: "Please wait while we generate the statement preview." });
+        try {
+            await robustIframePrint('vendor-statement', `Statement_${vendor.name}_${statementPeriod}`);
+        } catch (error) {
+            console.error('Print failed:', error);
+            toast({ title: "Print failed", variant: "destructive" });
+        }
     };
 
     const handleDownloadPDF = async () => {
         toast({ title: "Preparing download...", description: "Please wait while we generate your PDF." });
+        const element = document.getElementById('vendor-statement');
+        if (!element) return;
+        setIsDownloading(true);
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.zIndex = '-9999';
+        container.style.width = '210mm';
+        container.style.backgroundColor = '#ffffff';
+        container.style.padding = '0';
+        container.style.margin = '0';
+        document.body.appendChild(container);
+        const clone = element.cloneNode(true) as HTMLElement;
+        clone.style.position = 'static';
+        clone.style.width = '100%';
+        clone.style.height = 'auto';
+        clone.style.margin = '0';
+        clone.style.transform = 'none';
+        clone.style.overflow = 'visible';
+        clone.style.minHeight = '0';
+        const tables = clone.querySelectorAll('table');
+        tables.forEach((table: any) => { table.style.width = '100%'; table.style.tableLayout = 'fixed'; table.style.borderCollapse = 'collapse'; });
+        const cells = clone.querySelectorAll('td, th');
+        cells.forEach((cell: any) => { cell.style.overflow = 'visible'; cell.style.whiteSpace = 'nowrap'; });
+        container.appendChild(clone);
+        await new Promise(resolve => setTimeout(resolve, 1000));
         try {
-            await generatePDFFromElement("vendor-statement", `Statement-${vendor.name}.pdf`);
-            toast({ title: "Success", description: "Statement downloaded successfully." });
+            const dataUrl = await toPng(clone, {
+                backgroundColor: '#ffffff', quality: 0.5, pixelRatio: 1,
+                width: container.offsetWidth, height: container.offsetHeight,
+                cacheBust: true, skipFonts: true,
+                style: { overflow: 'visible', width: container.offsetWidth + 'px', height: container.offsetHeight + 'px' }
+            });
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const imgWidth = 190;
+            const pageHeight = 277;
+            const elementHeight = container.offsetHeight;
+            const elementWidth = container.offsetWidth;
+            const imgHeight = (elementHeight * imgWidth) / elementWidth;
+            let heightLeft = imgHeight;
+            pdf.addImage(dataUrl, 'PNG', 10, 10, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+            while (heightLeft > 2) {
+                const position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(dataUrl, 'PNG', 10, position + 10, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+            pdf.save(`Statement_${vendor.name}_${new Date().toISOString().split('T')[0]}.pdf`);
+            toast({ title: "Statement downloaded successfully" });
         } catch (error) {
-            console.error("PDF generation error:", error);
-            toast({ title: "Error", description: "Failed to generate PDF. Please try again.", variant: "destructive" });
+            console.error('Error generating PDF:', error);
+            toast({ title: "Failed to download PDF", variant: "destructive" });
+        } finally {
+            document.body.removeChild(container);
+            setIsDownloading(false);
+        }
+    };
+
+    const handleDownloadExcel = () => {
+        try {
+            toast({ title: "Preparing Excel download...", description: "Generating your statement spreadsheet." });
+            const reportData = statementTransactions.map(tx => ({
+                Date: formatDate(tx.date),
+                Type: tx.type,
+                Number: tx.number || '-',
+                Amount: tx.type === 'Bill' ? tx.amount : 0,
+                Payments: tx.type === 'Payment' ? tx.amount : 0,
+                Balance: (tx as any).runningBalance || 0
+            }));
+            const ws = XLSX.utils.json_to_sheet(reportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Statement");
+            const max_width = reportData.reduce((w, r) => Math.max(w, r.Number.length), 10);
+            ws['!cols'] = [{ wch: 15 }, { wch: 10 }, { wch: max_width }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+            XLSX.writeFile(wb, `Statement_${vendor.name}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            toast({ title: "Excel downloaded successfully" });
+        } catch (error) {
+            console.error('Excel export failed:', error);
+            toast({ title: "Failed to download Excel", variant: "destructive" });
         }
     };
 
@@ -387,89 +589,213 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: VendorDetailPa
         setExpandedSections((prev: Record<string, boolean>) => ({ ...prev, [section]: !prev[section] }));
     };
 
+    const handleFilterChange = (sectionKey: string, status: string) => {
+        setSectionFilters(prev => ({ ...prev, [sectionKey]: status }));
+    };
+
+    const getFilteredTransactions = (sectionKey: string) => {
+        const sectionTransactions = transactions[sectionKey] || [];
+        const filter = sectionFilters[sectionKey];
+        if (filter === 'All') return sectionTransactions;
+        return sectionTransactions.filter(tx =>
+            tx.status?.toUpperCase() === filter.toUpperCase() ||
+            tx.status?.toUpperCase().replace('_', ' ') === filter.toUpperCase()
+        );
+    };
+
+    const handleNewTransaction = (type: string) => {
+        const routes: Record<string, string> = {
+            bill: `/bills/new?vendorId=${fullVendor.id}`,
+            expense: `/expenses?vendorId=${fullVendor.id}`,
+            'purchase-order': `/purchase-orders/new?vendorId=${fullVendor.id}`,
+            payment: `/payments-made/new?vendorId=${fullVendor.id}`,
+            'vendor-credit': `/vendor-credits/new?vendorId=${fullVendor.id}`,
+        };
+        setLocation(routes[type] || `/bills/new?vendorId=${fullVendor.id}`);
+    };
+
+    const transactionSections = [
+        { key: 'bills', label: 'Bills', columns: ['DATE', 'BILL N...', 'ORDER NU...', 'AMOUNT', 'BALANCE D...', 'STATUS'], statusOptions: ['All', 'Draft', 'Open', 'Paid', 'Partially Paid', 'Overdue', 'Void'] },
+        { key: 'billPayments', label: 'Payments Made', columns: ['DATE', 'PAYMEN...', 'REFERE...', 'AMOUNT', 'STATUS'], statusOptions: ['All', 'Draft', 'Sent', 'Paid'] },
+        { key: 'expenses', label: 'Expenses', columns: ['DATE', 'EXPENSE N...', 'CATEGORY', 'AMOUNT', 'STATUS'], statusOptions: ['All', 'Draft', 'Pending', 'Approved', 'Rejected'] },
+        { key: 'purchaseOrders', label: 'Purchase Orders', columns: ['DATE', 'PO N...', 'REFERENCE', 'AMOUNT', 'STATUS'], statusOptions: ['All', 'Draft', 'Open', 'Closed', 'Cancelled'] },
+        { key: 'vendorCredits', label: 'Vendor Credits', columns: ['DATE', 'CREDIT N...', 'AMOUNT', 'BALANCE', 'STATUS'], statusOptions: ['All', 'Draft', 'Open', 'Closed'] }
+    ];
+
+    const [statementTransactions, setStatementTransactions] = useState<Transaction[]>([]);
+    const [openingBalance, setOpeningBalance] = useState(0);
+
+    useEffect(() => {
+        if (activeTab === "statement") {
+            fetchStatementTransactions();
+        }
+    }, [activeTab, vendor.id, statementPeriod]);
+
+    const fetchStatementTransactions = async () => {
+        try {
+            const response = await fetch(`/api/vendors/${vendor.id}/transactions`);
+            if (response.ok) {
+                const data = await response.json();
+                const { start, end } = getStatementDateRange(statementPeriod);
+                const allBills = (data.data?.bills || []).map((b: any) => ({ ...b, type: 'Bill' }));
+                const allPayments = (data.data?.billPayments || []).map((p: any) => ({ ...p, type: 'Payment' }));
+                const prevBills = allBills.filter((b: any) => isBefore(parseISO(b.date), start));
+                const prevPayments = allPayments.filter((p: any) => isBefore(parseISO(p.date), start));
+                const openingBal = prevBills.reduce((sum: number, b: any) => sum + b.amount, 0) -
+                    prevPayments.reduce((sum: number, p: any) => sum + p.amount, 0);
+                setOpeningBalance(openingBal);
+                const periodTx = [
+                    ...allBills.filter((b: any) => isWithinInterval(parseISO(b.date), { start, end })),
+                    ...allPayments.filter((p: any) => isWithinInterval(parseISO(p.date), { start, end }))
+                ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                let currentBal = openingBal;
+                const txWithBalance = periodTx.map(tx => {
+                    if (tx.type === 'Bill') { currentBal += tx.amount; } else { currentBal -= tx.amount; }
+                    return { ...tx, runningBalance: currentBal };
+                });
+                setStatementTransactions(txWithBalance.reverse());
+            }
+        } catch (error) {
+            console.error('Error fetching statement transactions:', error);
+        }
+    };
+
+    const getExpenseData = () => {
+        const now = new Date();
+        let monthsToInclude = 6;
+        let startDate = subMonths(startOfMonth(now), 5);
+        if (expensePeriod === "last-12-months") {
+            monthsToInclude = 12;
+            startDate = subMonths(startOfMonth(now), 11);
+        } else if (expensePeriod === "this-year") {
+            startDate = startOfYear(now);
+            const currentMonth = now.getMonth();
+            monthsToInclude = currentMonth + 1;
+        }
+        const months: { label: string; date: Date; expense: number }[] = [];
+        for (let i = 0; i < monthsToInclude; i++) {
+            const d = startOfMonth(subMonths(now, monthsToInclude - 1 - i));
+            months.push({ label: d.toLocaleDateString('en-IN', { month: 'short' }), date: d, expense: 0 });
+        }
+        const txList = expenseMethod === 'accrual'
+            ? (transactions.bills || []).filter(b => b.status !== 'Void')
+            : (transactions.billPayments || []).filter(p => p.status !== 'Void');
+        txList.forEach(tx => {
+            const txDate = parseISO(tx.date);
+            const mStart = startOfMonth(txDate);
+            const monthIdx = months.findIndex(m => m.date.getTime() === mStart.getTime());
+            if (monthIdx !== -1) months[monthIdx].expense += tx.amount || 0;
+        });
+        const totalExpense = months.reduce((sum, m) => sum + m.expense, 0);
+        return { months, totalExpense };
+    };
+
+    const expenseData = getExpenseData();
+
+    const billedAmount = statementTransactions.filter(tx => tx.type === 'Bill').reduce((sum, tx) => sum + tx.amount, 0);
+    const amountPaid = statementTransactions.filter(tx => tx.type === 'Payment').reduce((sum, tx) => sum + tx.amount, 0);
+    const balanceDue = openingBalance + billedAmount - amountPaid;
+
 
     return (
         <div className="h-full flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-sidebar-accent/5">
                 <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-                        <ChevronDown className="h-4 w-4 rotate-90" />
+                    <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 hover:bg-sidebar/10 transition-colors">
+                        <ChevronDown className="h-4 w-4 rotate-90 text-sidebar/70" />
                     </Button>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white truncate">
+                    <h2 className="text-xl font-semibold text-sidebar font-display truncate" data-testid="text-vendor-name">
                         {fullVendor.displayName || fullVendor.name}
                     </h2>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={onEdit} data-testid="button-edit-vendor">
+                        Edit
+                    </Button>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button className="bg-sidebar hover:bg-sidebar/90 text-white gap-1.5 h-9 font-display font-medium shadow-sm">
-                                <Plus className="h-4 w-4" />
+                            <Button className="bg-sidebar hover:bg-sidebar/90 text-white gap-1.5 h-9 font-display shadow-sm" size="sm" data-testid="button-new-transaction">
                                 New Transaction
-                                <ChevronDown className="h-3 w-3" />
+                                <ChevronDown className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={() => setLocation(`/bills/new?vendorId=${fullVendor.id}`)}>
+                        <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel className="text-xs text-slate-500">PURCHASES</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleNewTransaction("bill")} data-testid="menu-item-bill">
                                 <Receipt className="mr-2 h-4 w-4" /> Bill
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setLocation(`/expenses?vendorId=${fullVendor.id}`)}>
-                                <BadgeIndianRupee className="mr-2 h-4 w-4" /> Expense
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setLocation(`/purchase-orders/new?vendorId=${fullVendor.id}`)}>
-                                <Briefcase className="mr-2 h-4 w-4" /> Purchase Order
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setLocation(`/payments-made/new?vendorId=${fullVendor.id}`)}>
+                            <DropdownMenuItem onClick={() => handleNewTransaction("payment")} data-testid="menu-item-payment">
                                 <CreditCard className="mr-2 h-4 w-4" /> Payment Made
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setLocation(`/vendor-credits/new?vendorId=${fullVendor.id}`)}>
+                            <DropdownMenuItem onClick={() => handleNewTransaction("purchase-order")} data-testid="menu-item-purchase-order">
+                                <Briefcase className="mr-2 h-4 w-4" /> Purchase Order
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleNewTransaction("expense")} data-testid="menu-item-expense">
+                                <BadgeIndianRupee className="mr-2 h-4 w-4" /> Expense
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleNewTransaction("vendor-credit")} data-testid="menu-item-vendor-credit">
                                 <Notebook className="mr-2 h-4 w-4" /> Vendor Credit
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-
-                    <Button variant="outline" size="sm" onClick={onEdit} className="h-9">
-                        <Pencil className="h-4 w-4 mr-2" /> Edit
-                    </Button>
-
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="gap-1.5 h-9">
+                            <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-more-options">
                                 More
                                 <ChevronDown className="h-3 w-3" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={onDelete} className="text-red-600">
+                        <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive" data-testid="menu-item-delete">
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-
-                    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onClose}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} data-testid="button-close-panel">
                         <X className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex items-center px-6 border-b border-slate-200 dark:border-slate-700">
-                    <TabsList className="h-auto p-0 bg-transparent gap-6">
-                        {[
-                            { value: "overview", label: "Overview", icon: Building2 },
-                            { value: "comments", label: "Comments", icon: MessageSquare },
-                            { value: "transactions", label: "Transactions", icon: History },
-                            { value: "mails", label: "Mails", icon: Mail },
-                            { value: "statement", label: "Statement", icon: FileText }
-                        ].map((tab) => (
-                            <TabsTrigger
-                                key={tab.value}
-                                value={tab.value}
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar data-[state=active]:text-sidebar data-[state=active]:bg-transparent data-[state=active]:shadow-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-3 bg-transparent hover:bg-transparent transition-none gap-2 font-display font-medium"
-                            >
-                                <tab.icon className="h-4 w-4" />
-                                {tab.label}
-                            </TabsTrigger>
-                        ))}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div className="flex items-center px-6 border-b border-slate-200 bg-white flex-shrink-0">
+                    <TabsList className="h-auto p-0 bg-transparent gap-8">
+                        <TabsTrigger
+                            value="overview"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar data-[state=active]:text-sidebar data-[state=active]:bg-transparent data-[state=active]:shadow-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-3 bg-transparent hover:bg-transparent transition-none font-medium font-display"
+                            data-testid="tab-overview"
+                        >
+                            Overview
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="comments"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar data-[state=active]:text-sidebar data-[state=active]:bg-transparent data-[state=active]:shadow-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-3 bg-transparent hover:bg-transparent transition-none font-medium font-display"
+                            data-testid="tab-comments"
+                        >
+                            Comments
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="transactions"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar data-[state=active]:text-sidebar data-[state=active]:bg-transparent data-[state=active]:shadow-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-3 bg-transparent hover:bg-transparent transition-none font-medium font-display"
+                            data-testid="tab-transactions"
+                        >
+                            Transactions
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="mails"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar data-[state=active]:text-sidebar data-[state=active]:bg-transparent data-[state=active]:shadow-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-3 bg-transparent hover:bg-transparent transition-none font-medium font-display"
+                            data-testid="tab-mails"
+                        >
+                            Mails
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="statement"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar data-[state=active]:text-sidebar data-[state=active]:bg-transparent data-[state=active]:shadow-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-3 bg-transparent hover:bg-transparent transition-none font-medium font-display"
+                            data-testid="tab-statement"
+                        >
+                            Statement
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 

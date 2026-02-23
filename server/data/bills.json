@@ -45,14 +45,14 @@
       "adjustment": 0,
       "adjustmentDescription": "",
       "total": 165000,
-      "amountPaid": 0,
-      "balanceDue": 165000,
+      "amountPaid": 165000,
+      "balanceDue": 0,
       "notes": "",
       "attachments": [],
-      "status": "OPEN",
+      "status": "PAID",
       "pdfTemplate": "Standard Template",
       "createdAt": "2026-02-23T07:18:58.042Z",
-      "updatedAt": "2026-02-23T07:19:04.437Z",
+      "updatedAt": "2026-02-23T08:47:07.117Z",
       "createdBy": "Admin User",
       "activityLogs": [
         {
@@ -68,6 +68,20 @@
           "action": "updated",
           "description": "Bill updated. New total: ₹165000.00, Balance due: ₹165000.00",
           "user": "Admin User"
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-02-23T08:44:11.805Z",
+          "action": "payment",
+          "description": "Payment of ₹5,000 recorded",
+          "user": "Admin User"
+        },
+        {
+          "id": "4",
+          "timestamp": "2026-02-23T08:47:07.117Z",
+          "action": "payment",
+          "description": "Payment of ₹1,60,000 recorded",
+          "user": "Admin User"
         }
       ],
       "tcsType": "TCS",
@@ -76,7 +90,22 @@
       "tdsValue": 0,
       "tcsAmount": 0,
       "tdsAmount": 0,
-      "paymentsRecorded": [],
+      "paymentsRecorded": [
+        {
+          "paymentId": "direct-1771836251805",
+          "paymentNumber": "PM-00088",
+          "amount": 5000,
+          "date": "2026-02-23",
+          "mode": "Cash"
+        },
+        {
+          "paymentId": "direct-1771836427117",
+          "paymentNumber": "PM-00089",
+          "amount": 160000,
+          "date": "2026-02-23",
+          "mode": "Cash"
+        }
+      ],
       "creditsApplied": []
     },
     {

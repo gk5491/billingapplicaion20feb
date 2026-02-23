@@ -288,7 +288,71 @@
       "status": "PAID",
       "createdAt": "2026-02-11T06:38:39.325Z",
       "updatedAt": "2026-02-11T06:38:39.325Z"
+    },
+    {
+      "id": "pm-1771836251810",
+      "paymentNumber": "PM-00088",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 5000,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-23",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #17",
+      "billPayments": {
+        "1771831138043": {
+          "billId": "1771831138043",
+          "billNumber": "17",
+          "billAmount": 165000,
+          "amountPaid": 5000
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-23T08:44:11.805Z",
+      "updatedAt": "2026-02-23T08:44:11.805Z"
+    },
+    {
+      "id": "pm-1771836427118",
+      "paymentNumber": "PM-00089",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 160000,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-23",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #17",
+      "billPayments": {
+        "1771831138043": {
+          "billId": "1771831138043",
+          "billNumber": "17",
+          "billAmount": 165000,
+          "amountPaid": 160000
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-23T08:47:07.117Z",
+      "updatedAt": "2026-02-23T08:47:07.117Z"
     }
   ],
-  "nextPaymentNumber": 88
+  "nextPaymentNumber": 90
 }

@@ -61,7 +61,7 @@
       "billedStatus": "BILLED",
       "pdfTemplate": "Standard Template",
       "createdAt": "2026-02-23T07:18:11.486Z",
-      "updatedAt": "2026-02-23T07:18:58.042Z",
+      "updatedAt": "2026-02-23T08:43:16.161Z",
       "createdBy": "Admin User",
       "activityLogs": [
         {
@@ -77,8 +77,17 @@
           "action": "converted_to_bill",
           "description": "Purchase Order converted to Bill",
           "user": "Admin User"
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-02-23T08:43:16.161Z",
+          "action": "issued",
+          "description": "Purchase Order has been issued",
+          "user": "Admin User"
         }
-      ]
+      ],
+      "acceptedAt": "2026-02-23T08:42:31.283Z",
+      "acceptedBy": "priyanka k"
     },
     {
       "id": "1770791894014",
