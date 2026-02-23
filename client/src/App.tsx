@@ -89,6 +89,7 @@ import VendorPurchaseOrdersPage from "@/pages/vendor-purchase-orders";
 import VendorBillsPage from "@/pages/vendor-bills";
 import VendorPaymentHistoryPage from "@/pages/vendor-payment-history";
 import VendorReceiptsPage from "@/pages/vendor-receipts";
+import VendorPaymentReceiptsPage from "@/pages/vendor-payment-receipts";
 import VendorBillCreatePage from "@/pages/vendor-bill-create";
 import VendorItemsPage from "@/pages/vendor-items";
 
@@ -120,6 +121,7 @@ function Router() {
               <Route path="/vendor/bills" component={VendorBillsPage} />
               <Route path="/vendor/payment-history" component={VendorPaymentHistoryPage} />
               <Route path="/vendor/receipts" component={VendorReceiptsPage} />
+              <Route path="/vendor/payment-receipts" component={VendorPaymentReceiptsPage} />
 
               <Route path="/settings/organizations" component={SettingsOrganizations} />
               <Route path="/" component={Dashboard} />

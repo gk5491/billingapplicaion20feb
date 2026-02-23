@@ -217,8 +217,16 @@ export default function VendorBillCreate() {
       if (response.ok) {
         const data = await response.json();
         const allPOs = data.data || [];
+        // Exclude purchase orders that are already converted to bills
+        const billsRes = await fetch('/api/vendor/bills', { headers: { 'Authorization': `Bearer ${token}` } });
+        let vendorBills: any[] = [];
+        if (billsRes.ok) {
+          const billsData = await billsRes.json();
+          vendorBills = billsData.data || [];
+        }
+        const convertedPoIds = new Set(vendorBills.map(b => b.purchaseOrderId).filter(Boolean));
         const eligiblePOs = allPOs.filter((po: PurchaseOrder) =>
-          po.status === "Accepted" || po.status === "ISSUED" || po.status === "Issued"
+          (po.status === "Accepted" || po.status === "ISSUED" || po.status === "Issued") && !convertedPoIds.has(po.id)
         );
         setPurchaseOrders(eligiblePOs);
       }

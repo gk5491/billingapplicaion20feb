@@ -67,6 +67,7 @@ const EMAIL_LOGS_FILE = path.join(DATA_DIR, "emailLogs.json");
 const TRANSACTIONS_FILE = path.join(DATA_DIR, "transactions.json");
 const ITEM_REQUESTS_FILE = path.join(DATA_DIR, "itemRequests.json");
 const VENDOR_ITEMS_FILE = path.join(DATA_DIR, "vendorItems.json");
+const VENDOR_PAYMENT_RECEIPTS_FILE = path.join(DATA_DIR, "vendorPaymentReceipts.json");
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -95,13 +96,25 @@ function readVendorItems() {
     fs.writeFileSync(VENDOR_ITEMS_FILE, JSON.stringify({ items: [] }, null, 2));
     return [];
   }
-  const data = JSON.parse(fs.readFileSync(VENDOR_ITEMS_FILE, "utf-8"));
-  return data.items || [];
+  try {
+    const data = JSON.parse(fs.readFileSync(VENDOR_ITEMS_FILE, "utf-8"));
+    return data.items || [];
+  } catch (err) {
+    console.error("Failed to read/parse vendorItems.json:", err);
+    return [];
+  }
 }
 
 function writeVendorItems(items: any[]) {
   ensureDataDir();
-  fs.writeFileSync(VENDOR_ITEMS_FILE, JSON.stringify({ items }, null, 2));
+  try {
+    const tmp = VENDOR_ITEMS_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify({ items }, null, 2), { encoding: "utf-8" });
+    fs.renameSync(tmp, VENDOR_ITEMS_FILE);
+  } catch (err) {
+    console.error("Failed to write vendorItems.json:", err);
+    throw err;
+  }
 }
 
 function readOrganizationsData() {
@@ -150,6 +163,32 @@ function readEmailLogsData() {
 function writeEmailLogsData(data: any) {
   ensureDataDir();
   fs.writeFileSync(EMAIL_LOGS_FILE, JSON.stringify(data, null, 2));
+}
+
+function readVendorPaymentReceiptsData() {
+  ensureDataDir();
+  if (!fs.existsSync(VENDOR_PAYMENT_RECEIPTS_FILE)) {
+    fs.writeFileSync(VENDOR_PAYMENT_RECEIPTS_FILE, JSON.stringify({ receipts: [] }, null, 2));
+    return { receipts: [] };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(VENDOR_PAYMENT_RECEIPTS_FILE, "utf-8"));
+  } catch (err) {
+    console.error("Failed to read/parse vendorPaymentReceipts.json:", err);
+    return { receipts: [] };
+  }
+}
+
+function writeVendorPaymentReceiptsData(data: any) {
+  ensureDataDir();
+  try {
+    const tmp = VENDOR_PAYMENT_RECEIPTS_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), { encoding: "utf-8" });
+    fs.renameSync(tmp, VENDOR_PAYMENT_RECEIPTS_FILE);
+  } catch (err) {
+    console.error("Failed to write vendorPaymentReceipts.json:", err);
+    throw err;
+  }
 }
 
 const DEFAULT_UNITS = [
@@ -6099,9 +6138,23 @@ export async function registerRoutes(
         newStatus = 'VOID';
       }
 
+      // If this bill was created by a vendor, admin edits MUST NOT change items/quantities/amounts.
+      let mergedBody = { ...req.body };
+      if (existingBill.createdBy === 'vendor' || existingBill.createdBy === 'vendor_user') {
+        // preserve items and monetary fields from existing bill
+        mergedBody.items = existingBill.items;
+        mergedBody.total = existingBill.total;
+        mergedBody.subTotal = existingBill.subTotal;
+        mergedBody.taxAmount = existingBill.taxAmount;
+        mergedBody.tcsAmount = existingBill.tcsAmount;
+        mergedBody.tdsAmount = existingBill.tdsAmount;
+        mergedBody.balanceDue = existingBill.balanceDue;
+        mergedBody.amountPaid = existingBill.amountPaid;
+      }
+
       const updatedBill = {
         ...existingBill,
-        ...req.body,
+        ...mergedBody,
         ...preservedFields,
         // Override with recalculated values
         total: newTotal,
@@ -9647,6 +9700,127 @@ export async function registerRoutes(
     }
   });
 
+  // Vendor Payment Receipts - list
+  app.get("/api/vendor/receipts", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const data = readVendorPaymentReceiptsData();
+      const vendorReceipts = (data.receipts || []).filter((r: any) => r.vendorId === vendor.id);
+      res.json({ success: true, data: vendorReceipts });
+    } catch (error) {
+      console.error("Failed to load vendor receipts:", error);
+      res.status(500).json({ success: false, message: "Failed to load receipts" });
+    }
+  });
+
+  app.get("/api/vendor/receipts/:id", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const data = readVendorPaymentReceiptsData();
+      const receipt = (data.receipts || []).find((r: any) => r.id === req.params.id && r.vendorId === vendor.id);
+      if (!receipt) return res.status(404).json({ success: false, message: "Receipt not found" });
+      res.json({ success: true, data: receipt });
+    } catch (error) {
+      console.error("Failed to fetch receipt:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch receipt" });
+    }
+  });
+
+  // Create Vendor Receipt
+  app.post("/api/vendor/receipts", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const data = readVendorPaymentReceiptsData();
+      const receipt = {
+        id: String(Date.now()),
+        vendorId: vendor.id,
+        vendorName: vendor.displayName || vendor.companyName,
+        amount: Number(req.body.amount) || 0,
+        paymentStatus: req.body.paymentStatus || "Not Verified",
+        notes: req.body.notes || "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        sentToAdmin: false,
+      };
+      data.receipts = data.receipts || [];
+      data.receipts.push(receipt);
+      writeVendorPaymentReceiptsData(data);
+      res.status(201).json({ success: true, data: receipt });
+    } catch (error) {
+      console.error("Failed to create vendor receipt:", error);
+      res.status(500).json({ success: false, message: "Failed to create receipt" });
+    }
+  });
+
+  // Send receipt to admin
+  app.patch("/api/vendor/receipts/:id/send", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const data = readVendorPaymentReceiptsData();
+      const idx = (data.receipts || []).findIndex((r: any) => r.id === req.params.id && r.vendorId === vendor.id);
+      if (idx === -1) return res.status(404).json({ success: false, message: "Receipt not found" });
+      const receipt = data.receipts[idx];
+      // Update status if provided
+      if (req.body.paymentStatus) {
+        receipt.paymentStatus = req.body.paymentStatus;
+      }
+      receipt.sentToAdmin = true;
+      receipt.sentAt = new Date().toISOString();
+      receipt.updatedAt = new Date().toISOString();
+      data.receipts[idx] = receipt;
+      writeVendorPaymentReceiptsData(data);
+
+      // Notify admin/org via email trigger
+      try {
+        const orgData = readOrganizationsData();
+        const orgEmail = orgData.organizations[0]?.email;
+        if (orgEmail) {
+          await EmailTriggerService.createTrigger({
+            customerId: vendor.id,
+            recipients: [orgEmail],
+            customSubject: `Vendor Receipt: ${receipt.id} - ${receipt.vendorName}`,
+            customBody: `<p>Vendor <strong>${receipt.vendorName}</strong> has sent a payment receipt for ₹${receipt.amount}.</p><p>Status: ${receipt.paymentStatus}</p><p>Notes: ${receipt.notes || '-'} </p>`,
+            sendMode: 'immediate'
+          }, { receipt });
+        }
+      } catch (emailErr) {
+        console.error("Failed to notify admin about receipt:", emailErr);
+      }
+
+      res.json({ success: true, data: receipt });
+    } catch (error) {
+      console.error("Failed to send receipt:", error);
+      res.status(500).json({ success: false, message: "Failed to send receipt" });
+    }
+  });
+
+  // Admin: list all receipts (read-only)
+  app.get("/api/receipts", authenticate, requireRole("admin"), async (req: Request, res: Response) => {
+    try {
+      const data = readVendorPaymentReceiptsData();
+      res.json({ success: true, data: data.receipts || [] });
+    } catch (error) {
+      console.error("Failed to load receipts for admin:", error);
+      res.status(500).json({ success: false, message: "Failed to load receipts" });
+    }
+  });
+
+  app.get("/api/receipts/:id", authenticate, requireRole("admin"), async (req: Request, res: Response) => {
+    try {
+      const data = readVendorPaymentReceiptsData();
+      const receipt = (data.receipts || []).find((r: any) => r.id === req.params.id);
+      if (!receipt) return res.status(404).json({ success: false, message: "Receipt not found" });
+      res.json({ success: true, data: receipt });
+    } catch (error) {
+      console.error("Failed to fetch receipt for admin:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch receipt" });
+    }
+  });
+
   // Vendor Confirm Payment
   app.patch("/api/vendor/payments/:id/confirm", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
     try {
@@ -10066,7 +10240,8 @@ export async function registerRoutes(
       writeVendorItems(allItems);
       res.status(201).json({ success: true, data: newItem });
     } catch (error) {
-      res.status(500).json({ success: false, message: "Failed to create vendor item" });
+        console.error("Error creating vendor item:", error);
+        res.status(500).json({ success: false, message: "Failed to create vendor item" });
     }
   });
 
@@ -10088,7 +10263,8 @@ export async function registerRoutes(
       writeVendorItems(allItems);
       res.json({ success: true, data: allItems[idx] });
     } catch (error) {
-      res.status(500).json({ success: false, message: "Failed to update vendor item" });
+        console.error("Error updating vendor item:", error);
+        res.status(500).json({ success: false, message: "Failed to update vendor item" });
     }
   });
 
@@ -10103,7 +10279,8 @@ export async function registerRoutes(
       writeVendorItems(allItems);
       res.json({ success: true, message: "Item deleted" });
     } catch (error) {
-      res.status(500).json({ success: false, message: "Failed to delete vendor item" });
+        console.error("Error deleting vendor item:", error);
+        res.status(500).json({ success: false, message: "Failed to delete vendor item" });
     }
   });
 
@@ -10183,6 +10360,23 @@ export async function registerRoutes(
       });
       billsData.bills[billIdx] = bill;
       writeBillsData(billsData);
+      // Notify admin/org about submitted bill
+      try {
+        const orgData = readOrganizationsData();
+        const orgEmail = orgData.organizations[0]?.email;
+        if (orgEmail) {
+          await EmailTriggerService.createTrigger({
+            customerId: bill.vendorId,
+            recipients: [orgEmail],
+            customSubject: `Vendor Bill Submitted: ${bill.billNumber}`,
+            customBody: `<p>Vendor <strong>${bill.vendorName}</strong> submitted bill <strong>${bill.billNumber}</strong> for ₹${bill.total || 0}.</p><p>Please review and approve or reject the bill in the admin panel.</p>`,
+            sendMode: 'immediate'
+          }, { bill });
+        }
+      } catch (emailErr) {
+        console.error("Failed to notify admin about submitted bill:", emailErr);
+      }
+
       res.json({ success: true, data: bill });
     } catch (error) {
       res.status(500).json({ success: false, message: "Failed to submit bill" });

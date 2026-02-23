@@ -163,6 +163,7 @@ export default function BillEdit() {
   };
   const [loading, setLoading] = useState(false);
   const [loadingBill, setLoadingBill] = useState(true);
+  const [isVendorCreated, setIsVendorCreated] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -246,6 +247,7 @@ export default function BillEdit() {
       if (response.ok) {
         const data = await response.json();
         const bill = data.data;
+        setIsVendorCreated(bill.createdBy === 'vendor' || bill.createdBy === 'vendor_user');
         setFormData({
           vendorId: bill.vendorId || "",
           vendorName: bill.vendorName || "",
@@ -752,7 +754,7 @@ export default function BillEdit() {
                                 }
                               }}
                             >
-                              <SelectTrigger className="text-sm" data-testid={`select-item-${item.id}`} disabled={!!formData.purchaseOrderId}>
+                              <SelectTrigger className="text-sm" data-testid={`select-item-${item.id}`} disabled={!!formData.purchaseOrderId || isVendorCreated}>
                                 <SelectValue placeholder={loadingProducts ? "Loading items..." : "Select an item"} />
                               </SelectTrigger>
                               <SelectContent>
@@ -783,7 +785,7 @@ export default function BillEdit() {
                             />
                           </TableCell>
                           <TableCell>
-                            <Input
+                              <Input
                               type="number"
                               value={item.quantity}
                               onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
@@ -792,7 +794,7 @@ export default function BillEdit() {
                               min={0}
                               step={0.01}
                               data-testid={`input-quantity-${item.id}`}
-                              disabled={!!formData.purchaseOrderId}
+                              disabled={!!formData.purchaseOrderId || isVendorCreated}
                             />
                           </TableCell>
                           <TableCell>
@@ -805,7 +807,7 @@ export default function BillEdit() {
                               min={0}
                               step={0.01}
                               data-testid={`input-rate-${item.id}`}
-                              disabled={!!formData.purchaseOrderId}
+                              disabled={!!formData.purchaseOrderId || isVendorCreated}
                             />
                           </TableCell>
                           <TableCell>
@@ -856,7 +858,7 @@ export default function BillEdit() {
                               className="h-8 w-8 text-red-500"
                               onClick={() => removeItem(item.id)}
                               data-testid={`button-remove-item-${item.id}`}
-                              disabled={!!formData.purchaseOrderId}
+                              disabled={!!formData.purchaseOrderId || isVendorCreated}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -867,9 +869,9 @@ export default function BillEdit() {
                   </TableBody>
                 </Table>
                 <div className="p-3 border-t">
-                  <DropdownMenu>
+                      <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-add-new-row" disabled={!!formData.purchaseOrderId}>
+                      <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-add-new-row" disabled={!!formData.purchaseOrderId || isVendorCreated}>
                         <Plus className="h-4 w-4" />
                         Add New Row
                         <ChevronDown className="h-3 w-3" />

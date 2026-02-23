@@ -1,1 +1,26 @@
-{"items":[]}
+{
+  "items": [
+    {
+      "id": "1771847301026",
+      "vendorId": "4",
+      "name": "Keyboard",
+      "type": "goods",
+      "hsnSac": "GDAJ8943",
+      "usageUnit": "pcs",
+      "rate": "1600",
+      "purchaseRate": "1700",
+      "description": "Keyboard",
+      "salesDescription": "Keyboard",
+      "purchaseDescription": "Keyboard",
+      "taxPreference": "taxable",
+      "intraStateTax": "GST185",
+      "interStateTax": "IGST185",
+      "salesAccount": "",
+      "purchaseAccount": "",
+      "availableQuantity": 20,
+      "isActive": true,
+      "createdAt": "2026-02-23T11:48:21.026Z",
+      "updatedAt": "2026-02-23T11:48:21.026Z"
+    }
+  ]
+}
