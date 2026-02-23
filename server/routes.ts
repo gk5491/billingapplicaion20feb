@@ -6609,6 +6609,29 @@ export async function registerRoutes(
   });
 
   // Payments Received API
+  function enrichPaymentInvoices(payment: any) {
+    if (!payment.invoices || !Array.isArray(payment.invoices) || payment.invoices.length === 0) return payment;
+    const invoicesData = readInvoicesData();
+    return {
+      ...payment,
+      invoices: payment.invoices.map((payInv: any) => {
+        const fullInvoice = invoicesData.invoices.find((inv: any) => inv.id === payInv.invoiceId);
+        if (fullInvoice) {
+          return {
+            ...payInv,
+            items: fullInvoice.items || [],
+            total: fullInvoice.total || payInv.invoiceAmount || 0,
+            subTotal: fullInvoice.subTotal || 0,
+            balanceDue: fullInvoice.balanceDue ?? payInv.amountDue ?? 0,
+            invoiceStatus: fullInvoice.status || '',
+            dueDate: fullInvoice.dueDate || '',
+          };
+        }
+        return payInv;
+      })
+    };
+  }
+
   app.get("/api/payments-received", (req: Request, res: Response) => {
     try {
       const data = readPaymentsReceivedData();
@@ -6616,10 +6639,11 @@ export async function registerRoutes(
 
       let payments = data.paymentsReceived;
 
-      // Filter by customerId if provided
       if (customerId) {
         payments = payments.filter((payment: any) => payment.customerId === customerId);
       }
+
+      payments = payments.map(enrichPaymentInvoices);
 
       res.json({ success: true, data: payments });
     } catch (error) {
@@ -6636,26 +6660,7 @@ export async function registerRoutes(
         return res.status(404).json({ success: false, message: "Payment not found" });
       }
 
-      const invoicesData = readInvoicesData();
-      if (payment.invoices && Array.isArray(payment.invoices)) {
-        payment.invoices = payment.invoices.map((payInv: any) => {
-          const fullInvoice = invoicesData.invoices.find((inv: any) => inv.id === payInv.invoiceId);
-          if (fullInvoice) {
-            return {
-              ...payInv,
-              items: fullInvoice.items || [],
-              total: fullInvoice.total || payInv.invoiceAmount || 0,
-              subTotal: fullInvoice.subTotal || 0,
-              balanceDue: fullInvoice.balanceDue ?? payInv.amountDue ?? 0,
-              invoiceStatus: fullInvoice.status || '',
-              dueDate: fullInvoice.dueDate || '',
-            };
-          }
-          return payInv;
-        });
-      }
-
-      res.json({ success: true, data: payment });
+      res.json({ success: true, data: enrichPaymentInvoices(payment) });
     } catch (error) {
       res.status(500).json({ success: false, message: "Failed to fetch payment" });
     }
@@ -7287,7 +7292,9 @@ export async function registerRoutes(
       const allReceipts = await storage.getAllCustomerReceipts(); // Need to add this to storage
       const filteredReceipts = allReceipts.filter((r: any) => customerIds.includes(String(r.customerId)));
 
-      res.json({ success: true, data: filteredReceipts });
+      const enrichedReceipts = filteredReceipts.map((receipt: any) => enrichPaymentInvoices(receipt));
+
+      res.json({ success: true, data: enrichedReceipts });
     } catch (error) {
       console.error('Receipts fetch error:', error);
       res.status(500).json({ success: false, message: "Failed to fetch receipts" });
