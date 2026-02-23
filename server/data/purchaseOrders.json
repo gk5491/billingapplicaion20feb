@@ -56,7 +56,7 @@
       "notes": "",
       "termsAndConditions": "",
       "attachments": [],
-      "status": "ISSUED",
+      "status": "Accepted",
       "receiveStatus": "YET TO BE RECEIVED",
       "billedStatus": "BILLED",
       "pdfTemplate": "Standard Template",
@@ -86,7 +86,7 @@
           "user": "Admin User"
         }
       ],
-      "acceptedAt": "2026-02-23T08:42:31.283Z",
+      "acceptedAt": "2026-02-23T11:10:14.725Z",
       "acceptedBy": "priyanka k",
       "rejectedAt": null,
       "rejectedBy": null,
