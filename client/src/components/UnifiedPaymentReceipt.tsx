@@ -227,7 +227,7 @@ export function UnifiedPaymentReceipt({
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                                 <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '600' }}>Amount Paid</span>
-                                                <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '800' }}>{formatCurrency(invoice.paymentAmount || invoice.paidAmount || 0)}</span>
+                                                <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '800' }}>{formatCurrency(invoice.amountPaid ?? invoice.paymentAmount ?? invoice.paidAmount ?? 0)}</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
                                                 <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: '700' }}>Balance Due</span>

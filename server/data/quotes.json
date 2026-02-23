@@ -1096,7 +1096,69 @@
           "user": "Admin User"
         }
       ]
+    },
+    {
+      "id": "30",
+      "quoteNumber": "QT-000030",
+      "customerId": "2",
+      "customerName": "Mr. Ganesh K",
+      "billingAddress": {
+        "street": "Guruji chowwk, near demart",
+        "city": "Nanded",
+        "state": "MH",
+        "country": "India",
+        "pincode": "431892",
+        "attention": "",
+        "phone": "",
+        "fax": ""
+      },
+      "shippingAddress": {
+        "street": "Guruji chowwk, near demart",
+        "city": "Nanded",
+        "state": "MH",
+        "country": "India",
+        "pincode": "431892",
+        "attention": "",
+        "phone": "",
+        "fax": ""
+      },
+      "organizationId": "1",
+      "date": "2026-02-23T04:52:22.576Z",
+      "status": "Approved",
+      "items": [
+        {
+          "id": "1",
+          "name": "books",
+          "description": "efsg",
+          "quantity": 2,
+          "rate": 100,
+          "amount": 200,
+          "unit": "pcs"
+        }
+      ],
+      "subTotal": 200,
+      "total": 200,
+      "createdAt": "2026-02-23T04:52:22.576Z",
+      "updatedAt": "2026-02-23T04:53:24.696Z",
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-23T04:52:39.413Z",
+          "action": "sent",
+          "description": "Quote has been sent to customer",
+          "user": "Admin User"
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-02-23T04:53:24.696Z",
+          "action": "converted",
+          "description": "Converted to Invoice INV-00023",
+          "user": "Admin User",
+          "link": "/invoices/1771822404696"
+        }
+      ],
+      "convertedTo": "invoice"
     }
   ],
-  "nextQuoteNumber": 30
+  "nextQuoteNumber": 31
 }

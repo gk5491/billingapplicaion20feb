@@ -6615,16 +6615,26 @@ export async function registerRoutes(
     return {
       ...payment,
       invoices: payment.invoices.map((payInv: any) => {
-        const fullInvoice = invoicesData.invoices.find((inv: any) => inv.id === payInv.invoiceId);
+        const invoiceLookupId = payInv.invoiceId || payInv.id;
+        const fullInvoice = invoicesData.invoices.find((inv: any) => 
+          inv.id === invoiceLookupId || 
+          (payInv.invoiceNumber && inv.invoiceNumber === payInv.invoiceNumber)
+        );
         if (fullInvoice) {
+          const invoiceTotal = fullInvoice.total || payInv.invoiceAmount || 0;
+          const amountPaid = fullInvoice.amountPaid ?? (invoiceTotal - (fullInvoice.balanceDue ?? 0));
           return {
             ...payInv,
+            invoiceId: fullInvoice.id,
+            invoiceNumber: payInv.invoiceNumber || fullInvoice.invoiceNumber,
+            invoiceDate: payInv.invoiceDate || fullInvoice.date || fullInvoice.invoiceDate,
             items: fullInvoice.items || [],
-            total: fullInvoice.total || payInv.invoiceAmount || 0,
+            total: invoiceTotal,
             subTotal: fullInvoice.subTotal || 0,
             balanceDue: fullInvoice.balanceDue ?? payInv.amountDue ?? 0,
-            invoiceStatus: fullInvoice.status || '',
-            dueDate: fullInvoice.dueDate || '',
+            amountPaid: amountPaid,
+            invoiceStatus: fullInvoice.status || payInv.invoiceStatus || '',
+            dueDate: fullInvoice.dueDate || payInv.dueDate || '',
           };
         }
         return payInv;
@@ -7289,10 +7299,35 @@ export async function registerRoutes(
         return res.json({ success: true, data: [] });
       }
 
-      const allReceipts = await storage.getAllCustomerReceipts(); // Need to add this to storage
+      const allReceipts = await storage.getAllCustomerReceipts();
       const filteredReceipts = allReceipts.filter((r: any) => customerIds.includes(String(r.customerId)));
 
-      const enrichedReceipts = filteredReceipts.map((receipt: any) => enrichPaymentInvoices(receipt));
+      const paymentsData = readPaymentsReceivedData();
+
+      const enrichedReceipts = filteredReceipts.map((receipt: any) => {
+        const fullPayment = paymentsData.paymentsReceived.find((p: any) => p.id === receipt.paymentId);
+        if (fullPayment) {
+          const mergedPayment = {
+            ...fullPayment,
+            ...receipt,
+            invoices: fullPayment.invoices || [],
+            mode: fullPayment.mode || receipt.mode || 'Online',
+            customerName: fullPayment.customerName || receipt.customerName,
+            customerEmail: fullPayment.customerEmail || receipt.customerEmail,
+            notes: fullPayment.notes || '',
+            amountInWords: fullPayment.amountInWords || '',
+            unusedAmount: fullPayment.unusedAmount || 0,
+            referenceNumber: fullPayment.referenceNumber || '',
+            depositTo: fullPayment.depositTo || '',
+            bankCharges: fullPayment.bankCharges || 0,
+            tax: fullPayment.tax || '',
+            taxAmount: fullPayment.taxAmount || 0,
+            placeOfSupply: fullPayment.placeOfSupply || '',
+          };
+          return enrichPaymentInvoices(mergedPayment);
+        }
+        return receipt;
+      });
 
       res.json({ success: true, data: enrichedReceipts });
     } catch (error) {

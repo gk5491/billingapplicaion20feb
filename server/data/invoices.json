@@ -1,6 +1,82 @@
 {
   "invoices": [
     {
+      "id": "1771822404696",
+      "invoiceNumber": "INV-00023",
+      "referenceNumber": "",
+      "date": "2026-02-23",
+      "dueDate": "2026-03-25",
+      "customerId": "2",
+      "customerName": "Mr. Ganesh K",
+      "billingAddress": {
+        "street": "Guruji chowwk, near demart",
+        "city": "Nanded",
+        "state": "MH",
+        "country": "India",
+        "pincode": "431892",
+        "attention": "",
+        "phone": "",
+        "fax": ""
+      },
+      "shippingAddress": {
+        "street": "Guruji chowwk, near demart",
+        "city": "Nanded",
+        "state": "MH",
+        "country": "India",
+        "pincode": "431892",
+        "attention": "",
+        "phone": "",
+        "fax": ""
+      },
+      "paymentTerms": "Net 30",
+      "items": [
+        {
+          "id": "1",
+          "name": "books",
+          "description": "efsg",
+          "quantity": 2,
+          "rate": 100,
+          "amount": 200,
+          "unit": "pcs"
+        }
+      ],
+      "subTotal": 200,
+      "total": 200,
+      "amountPaid": 100,
+      "balanceDue": 100,
+      "status": "Partially Paid",
+      "sourceType": "quote",
+      "sourceId": "30",
+      "sourceNumber": "QT-000030",
+      "createdAt": "2026-02-23T04:53:24.696Z",
+      "updatedAt": "2026-02-23T04:53:41.913Z",
+      "createdBy": "Admin User",
+      "payments": [],
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-23T04:53:24.696Z",
+          "action": "created",
+          "description": "Invoice created from Quote QT-000030",
+          "user": "Admin User"
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-02-23T04:53:41.913Z",
+          "action": "sent",
+          "description": "Invoice has been sent",
+          "user": "Admin User"
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-02-23T04:54:38.142Z",
+          "action": "payment_recorded",
+          "description": "Payment of ₹100 recorded and awaiting verification",
+          "user": "Customer Ganesh"
+        }
+      ]
+    },
+    {
       "id": "1771477326849",
       "invoiceNumber": "INV-22",
       "salesOrderId": "1771475184444",
@@ -1759,5 +1835,5 @@
       ]
     }
   ],
-  "nextInvoiceNumber": 23
+  "nextInvoiceNumber": 24
 }

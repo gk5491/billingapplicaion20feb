@@ -172,7 +172,7 @@ export default function CustomerReceiptsPage() {
                                         <Badge variant="outline">{receipt.mode || 'Online'}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right font-medium">
-                                        ₹{receipt.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        ₹{Number(receipt.amount)?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
@@ -227,6 +227,7 @@ export default function CustomerReceiptsPage() {
                                     <UnifiedPaymentReceipt
                                         payment={{
                                             ...selectedReceipt,
+                                            amount: Number(selectedReceipt?.amount) || 0,
                                             customerName: user?.name || selectedReceipt?.customerName || "Customer",
                                             customerEmail: user?.username || selectedReceipt?.customerEmail || ""
                                         }}

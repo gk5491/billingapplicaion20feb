@@ -317,6 +317,19 @@
       "customBody": "<p>Dear Mr. Ganesh K,</p><p>Please find the Invoice INV-22 for your recent order.</p>",
       "sendMode": "immediate",
       "createdAt": "2026-02-19T05:02:06.850Z"
+    },
+    {
+      "id": "71398d47-2e51-4fdf-986f-c7461a75250c",
+      "transactionType": "estimate",
+      "transactionId": "30",
+      "customerId": "2",
+      "recipients": [
+        "ganeshkale5491@gmail.com"
+      ],
+      "customSubject": "Quotation QT-000030 from Cybaem Tech",
+      "customBody": "<p>Dear Mr. Ganesh K,</p><p>Please find the Quotation QT-000030 for your review.</p>",
+      "sendMode": "immediate",
+      "createdAt": "2026-02-23T04:52:39.416Z"
     }
   ]
 }

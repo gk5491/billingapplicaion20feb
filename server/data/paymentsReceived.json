@@ -997,7 +997,39 @@
       "updatedAt": "2026-02-20T05:37:31.369Z",
       "verifiedAt": "2026-02-20T05:37:31.369Z",
       "verifiedBy": "Admin"
+    },
+    {
+      "id": "1771822478141",
+      "paymentNumber": "PAY-115",
+      "date": "2026-02-23T04:56:49.302Z",
+      "referenceNumber": "",
+      "customerId": "2",
+      "customerName": "Mr. Ganesh K",
+      "customerEmail": "ganeshkale5491@gmail.com",
+      "invoices": [
+        {
+          "id": "1771822404696",
+          "invoiceNumber": "INV-00023",
+          "amountApplied": 100
+        }
+      ],
+      "mode": "Bank Transfer",
+      "depositTo": "Undeposited Funds",
+      "amount": 100,
+      "unusedAmount": 0,
+      "bankCharges": 0,
+      "tax": "None",
+      "taxAmount": 0,
+      "notes": "",
+      "attachments": [],
+      "sendThankYou": true,
+      "status": "Verified",
+      "paymentType": "Customer Payment",
+      "createdAt": "2026-02-23T04:54:38.141Z",
+      "updatedAt": "2026-02-23T04:54:54.776Z",
+      "verifiedAt": "2026-02-23T04:54:54.776Z",
+      "verifiedBy": "Admin"
     }
   ],
-  "nextPaymentNumber": 115
+  "nextPaymentNumber": 116
 }
