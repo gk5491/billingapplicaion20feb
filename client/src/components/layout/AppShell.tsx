@@ -220,6 +220,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <>
               <NavItem href="/vendor/dashboard" icon={Home} label="Dashboard" />
               <NavItem href="/vendor/profile" icon={UserCog} label="My Profile" />
+              <NavItem href="/vendor/items" icon={Package} label="Items" />
               <NavItem href="/vendor/purchase-orders" icon={ShoppingBag} label="Purchase Orders" />
               <NavItem href="/vendor/bills" icon={FileText} label="Bills" />
               <NavItem href="/vendor/payment-history" icon={History} label="Payment History" />

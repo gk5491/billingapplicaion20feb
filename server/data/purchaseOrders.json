@@ -61,7 +61,7 @@
       "billedStatus": "BILLED",
       "pdfTemplate": "Standard Template",
       "createdAt": "2026-02-23T07:18:11.486Z",
-      "updatedAt": "2026-02-23T08:43:16.161Z",
+      "updatedAt": "2026-02-23T10:46:36.210Z",
       "createdBy": "Admin User",
       "activityLogs": [
         {
@@ -87,7 +87,19 @@
         }
       ],
       "acceptedAt": "2026-02-23T08:42:31.283Z",
-      "acceptedBy": "priyanka k"
+      "acceptedBy": "priyanka k",
+      "rejectedAt": null,
+      "rejectedBy": null,
+      "rejectionReason": null,
+      "activityLog": [
+        {
+          "id": "1771843596210",
+          "timestamp": "2026-02-23T10:46:36.210Z",
+          "action": "resent_to_vendor",
+          "description": "Purchase order resent to vendor after rejection",
+          "user": "Admin"
+        }
+      ]
     },
     {
       "id": "1770791894014",
@@ -293,7 +305,7 @@
       "notes": "",
       "termsAndConditions": "",
       "attachments": [],
-      "status": "ISSUED",
+      "status": "Accepted",
       "receiveStatus": "YET TO BE RECEIVED",
       "billedStatus": "BILLED",
       "pdfTemplate": "Standard Template",
@@ -315,7 +327,9 @@
           "description": "Purchase Order converted to Bill",
           "user": "Admin User"
         }
-      ]
+      ],
+      "acceptedAt": "2026-02-23T09:58:28.851Z",
+      "acceptedBy": "Prajwal K"
     },
     {
       "id": "1770364813871",

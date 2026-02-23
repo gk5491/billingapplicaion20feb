@@ -157,6 +157,24 @@ function getStatusBadge(status: string) {
           Rejected
         </Badge>
       );
+    case "SUBMITTED":
+      return (
+        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+          Submitted
+        </Badge>
+      );
+    case "APPROVED":
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          Approved
+        </Badge>
+      );
+    case "DRAFT":
+      return (
+        <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">
+          Draft
+        </Badge>
+      );
     case "Paid":
       return (
         <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -435,6 +453,7 @@ function VendorBillDetailPanel({
   onClose,
   onEdit,
   onResubmit,
+  onSubmitToAdmin,
   branding,
   organization,
 }: {
@@ -442,14 +461,18 @@ function VendorBillDetailPanel({
   onClose: () => void;
   onEdit: () => void;
   onResubmit: () => void;
+  onSubmitToAdmin: () => void;
   branding?: any;
   organization?: Organization;
 }) {
   const [showPdfView, setShowPdfView] = useState(true);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
-  const canEdit = bill.status === "Pending Approval" || bill.status === "Rejected";
+  const canEdit = bill.status === "DRAFT" || bill.status === "Pending Approval" || bill.status === "REJECTED" || bill.status === "Rejected";
   const canResubmit = bill.status === "Rejected";
+  const canSubmitToAdmin = bill.status === "DRAFT" || bill.status === "PENDING" || bill.status === "Pending Approval";
+  const isRejected = bill.status === "REJECTED" || bill.status === "Rejected";
 
   const handleDownloadPDF = async () => {
     toast({ title: "Preparing download...", description: "Please wait while we generate your PDF." });
@@ -523,6 +546,16 @@ function VendorBillDetailPanel({
           </>
         )}
 
+        {canSubmitToAdmin && (
+          <>
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs font-semibold text-green-600" onClick={onSubmitToAdmin} data-testid="button-submit-to-admin">
+              <Send className="h-3.5 w-3.5" />
+              Send to Customer (Admin)
+            </Button>
+          </>
+        )}
+
         {canResubmit && (
           <>
             <div className="w-px h-4 bg-slate-200 mx-1" />
@@ -532,9 +565,19 @@ function VendorBillDetailPanel({
             </Button>
           </>
         )}
+
+        {isRejected && (
+          <>
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs font-semibold text-amber-600" onClick={() => setLocation(`/vendor/bills/new?billId=${bill.id}`)} data-testid="button-edit-rejected-bill">
+              <Pencil className="h-3.5 w-3.5" />
+              Edit &amp; Resubmit
+            </Button>
+          </>
+        )}
       </div>
 
-      {bill.status === "Rejected" && bill.rejectionReason && (
+      {(bill.status === "Rejected" || bill.status === "REJECTED") && bill.rejectionReason && (
         <div className="mx-4 mt-3 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
           <div>
@@ -939,6 +982,27 @@ export default function VendorBillsPage() {
     setShowEditDialog(true);
   };
 
+  const handleSubmitToAdmin = async (billId: string) => {
+    try {
+      const res = await fetch(`/api/vendor/bills/${billId}/submit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        toast({ title: "Bill submitted to admin for approval" });
+        fetchBills();
+        if (selectedBill?.id === billId) {
+          setSelectedBill((prev) => (prev ? { ...prev, status: "SUBMITTED" } : null));
+        }
+      } else {
+        const err = await res.json();
+        toast({ title: err.message || "Failed to submit bill", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error submitting bill", variant: "destructive" });
+    }
+  };
+
   const handleResubmit = async (billId: string) => {
     try {
       const res = await fetch(`/api/vendor/bills/${billId}/resubmit`, {
@@ -1256,6 +1320,7 @@ export default function VendorBillsPage() {
               onClose={handleClosePanel}
               onEdit={() => openEditDialog(selectedBill)}
               onResubmit={() => handleResubmit(selectedBill.id)}
+              onSubmitToAdmin={() => handleSubmitToAdmin(selectedBill.id)}
               branding={branding}
               organization={organization}
             />

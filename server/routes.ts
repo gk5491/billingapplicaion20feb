@@ -66,6 +66,7 @@ const ORGANIZATIONS_FILE = path.join(DATA_DIR, "organizations.json");
 const EMAIL_LOGS_FILE = path.join(DATA_DIR, "emailLogs.json");
 const TRANSACTIONS_FILE = path.join(DATA_DIR, "transactions.json");
 const ITEM_REQUESTS_FILE = path.join(DATA_DIR, "itemRequests.json");
+const VENDOR_ITEMS_FILE = path.join(DATA_DIR, "vendorItems.json");
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -86,6 +87,21 @@ function readItems() {
 function writeItems(items: any[]) {
   ensureDataDir();
   fs.writeFileSync(ITEMS_FILE, JSON.stringify({ items }, null, 2));
+}
+
+function readVendorItems() {
+  ensureDataDir();
+  if (!fs.existsSync(VENDOR_ITEMS_FILE)) {
+    fs.writeFileSync(VENDOR_ITEMS_FILE, JSON.stringify({ items: [] }, null, 2));
+    return [];
+  }
+  const data = JSON.parse(fs.readFileSync(VENDOR_ITEMS_FILE, "utf-8"));
+  return data.items || [];
+}
+
+function writeVendorItems(items: any[]) {
+  ensureDataDir();
+  fs.writeFileSync(VENDOR_ITEMS_FILE, JSON.stringify({ items }, null, 2));
 }
 
 function readOrganizationsData() {
@@ -9982,6 +9998,266 @@ export async function registerRoutes(
       res.json({ success: true, data: updatedBill });
     } catch (error) {
       res.status(500).json({ success: false, message: "Failed to update bill" });
+    }
+  });
+
+  // =============================================
+  // VENDOR ITEMS CRUD
+  // =============================================
+
+  app.get("/api/vendor/items", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const allItems = readVendorItems();
+      const vendorItems = allItems.filter((item: any) => item.vendorId === vendor.id);
+      const search = (req.query.search as string || "").toLowerCase();
+      const status = req.query.status as string;
+      const type = req.query.type as string;
+      let filtered = vendorItems;
+      if (search) {
+        filtered = filtered.filter((item: any) =>
+          (item.name || "").toLowerCase().includes(search) ||
+          (item.hsnSac || "").toLowerCase().includes(search) ||
+          (item.description || "").toLowerCase().includes(search)
+        );
+      }
+      if (status === "active") filtered = filtered.filter((i: any) => i.isActive !== false);
+      if (status === "inactive") filtered = filtered.filter((i: any) => i.isActive === false);
+      if (type && type !== "all") filtered = filtered.filter((i: any) => i.type === type);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const start = (page - 1) * limit;
+      const paginated = filtered.slice(start, start + limit);
+      res.json({ success: true, data: { items: paginated, total: filtered.length, page, limit, totalPages: Math.ceil(filtered.length / limit) } });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to fetch vendor items" });
+    }
+  });
+
+  app.get("/api/vendor/items/:id", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const allItems = readVendorItems();
+      const item = allItems.find((i: any) => i.id === req.params.id && i.vendorId === vendor.id);
+      if (!item) return res.status(404).json({ success: false, message: "Item not found" });
+      res.json({ success: true, data: item });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to fetch vendor item" });
+    }
+  });
+
+  app.post("/api/vendor/items", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const allItems = readVendorItems();
+      const newItem = {
+        id: Date.now().toString(),
+        vendorId: vendor.id,
+        ...req.body,
+        availableQuantity: Number(req.body.availableQuantity) || 0,
+        isActive: req.body.isActive !== false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      allItems.push(newItem);
+      writeVendorItems(allItems);
+      res.status(201).json({ success: true, data: newItem });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to create vendor item" });
+    }
+  });
+
+  app.put("/api/vendor/items/:id", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const allItems = readVendorItems();
+      const idx = allItems.findIndex((i: any) => i.id === req.params.id && i.vendorId === vendor.id);
+      if (idx === -1) return res.status(404).json({ success: false, message: "Item not found" });
+      allItems[idx] = {
+        ...allItems[idx],
+        ...req.body,
+        id: allItems[idx].id,
+        vendorId: vendor.id,
+        availableQuantity: Number(req.body.availableQuantity ?? allItems[idx].availableQuantity) || 0,
+        updatedAt: new Date().toISOString()
+      };
+      writeVendorItems(allItems);
+      res.json({ success: true, data: allItems[idx] });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to update vendor item" });
+    }
+  });
+
+  app.delete("/api/vendor/items/:id", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const allItems = readVendorItems();
+      const idx = allItems.findIndex((i: any) => i.id === req.params.id && i.vendorId === vendor.id);
+      if (idx === -1) return res.status(404).json({ success: false, message: "Item not found" });
+      allItems.splice(idx, 1);
+      writeVendorItems(allItems);
+      res.json({ success: true, message: "Item deleted" });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to delete vendor item" });
+    }
+  });
+
+  app.patch("/api/vendor/items/:id/status", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const allItems = readVendorItems();
+      const idx = allItems.findIndex((i: any) => i.id === req.params.id && i.vendorId === vendor.id);
+      if (idx === -1) return res.status(404).json({ success: false, message: "Item not found" });
+      allItems[idx].isActive = !allItems[idx].isActive;
+      allItems[idx].updatedAt = new Date().toISOString();
+      writeVendorItems(allItems);
+      res.json({ success: true, data: allItems[idx] });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to toggle item status" });
+    }
+  });
+
+  // =============================================
+  // VENDOR BILL SUBMIT / STOCK MANAGEMENT
+  // =============================================
+
+  app.patch("/api/vendor/bills/:id/submit", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+      const billsData = readBillsData();
+      const billIdx = billsData.bills.findIndex((b: any) => b.id === req.params.id && (b.vendorId === vendor.id || b.vendorName === vendor.displayName));
+      if (billIdx === -1) return res.status(404).json({ success: false, message: "Bill not found" });
+      const bill = billsData.bills[billIdx];
+      if (bill.status !== "DRAFT" && bill.status !== "PENDING" && bill.status !== "REJECTED") {
+        return res.status(400).json({ success: false, message: "Bill can only be submitted when in Draft, Pending, or Rejected status" });
+      }
+
+      const vendorItems = readVendorItems();
+      const stockErrors: string[] = [];
+      if (bill.items && Array.isArray(bill.items)) {
+        for (const billItem of bill.items) {
+          if (billItem.vendorItemId) {
+            const vi = vendorItems.find((v: any) => v.id === billItem.vendorItemId && v.vendorId === vendor.id);
+            if (vi) {
+              if (billItem.quantity > vi.availableQuantity) {
+                stockErrors.push(`${vi.name}: requested ${billItem.quantity}, available ${vi.availableQuantity}`);
+              }
+            }
+          }
+        }
+      }
+      if (stockErrors.length > 0) {
+        return res.status(400).json({ success: false, message: "Insufficient stock", errors: stockErrors });
+      }
+
+      if (bill.items && Array.isArray(bill.items)) {
+        for (const billItem of bill.items) {
+          if (billItem.vendorItemId) {
+            const viIdx = vendorItems.findIndex((v: any) => v.id === billItem.vendorItemId && v.vendorId === vendor.id);
+            if (viIdx !== -1) {
+              vendorItems[viIdx].availableQuantity = Math.max(0, vendorItems[viIdx].availableQuantity - billItem.quantity);
+              vendorItems[viIdx].updatedAt = new Date().toISOString();
+            }
+          }
+        }
+        writeVendorItems(vendorItems);
+      }
+
+      bill.status = "SUBMITTED";
+      bill.submittedAt = new Date().toISOString();
+      bill.submittedBy = vendor.displayName;
+      if (!bill.activityLogs) bill.activityLogs = [];
+      bill.activityLogs.push({
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        action: "submitted",
+        description: "Bill submitted to admin for approval",
+        user: vendor.displayName
+      });
+      billsData.bills[billIdx] = bill;
+      writeBillsData(billsData);
+      res.json({ success: true, data: bill });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to submit bill" });
+    }
+  });
+
+  app.patch("/api/vendor/bills/:id/reject", authenticate, async (req: Request, res: Response) => {
+    try {
+      const billsData = readBillsData();
+      const billIdx = billsData.bills.findIndex((b: any) => b.id === req.params.id);
+      if (billIdx === -1) return res.status(404).json({ success: false, message: "Bill not found" });
+      const bill = billsData.bills[billIdx];
+      if (bill.status !== "SUBMITTED") {
+        return res.status(400).json({ success: false, message: "Only submitted bills can be rejected" });
+      }
+      const reason = req.body.reason;
+      if (!reason) return res.status(400).json({ success: false, message: "Rejection reason is required" });
+
+      const vendorItems = readVendorItems();
+      if (bill.items && Array.isArray(bill.items)) {
+        for (const billItem of bill.items) {
+          if (billItem.vendorItemId) {
+            const viIdx = vendorItems.findIndex((v: any) => v.id === billItem.vendorItemId);
+            if (viIdx !== -1) {
+              vendorItems[viIdx].availableQuantity = (vendorItems[viIdx].availableQuantity || 0) + (billItem.quantity || 0);
+              vendorItems[viIdx].updatedAt = new Date().toISOString();
+            }
+          }
+        }
+        writeVendorItems(vendorItems);
+      }
+
+      bill.status = "REJECTED";
+      bill.rejectionReason = reason;
+      bill.rejectedAt = new Date().toISOString();
+      if (!bill.activityLogs) bill.activityLogs = [];
+      bill.activityLogs.push({
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        action: "rejected",
+        description: `Bill rejected: ${reason}`,
+        user: "Admin"
+      });
+      billsData.bills[billIdx] = bill;
+      writeBillsData(billsData);
+      res.json({ success: true, data: bill });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to reject bill" });
+    }
+  });
+
+  app.patch("/api/vendor/bills/:id/approve", authenticate, async (req: Request, res: Response) => {
+    try {
+      const billsData = readBillsData();
+      const billIdx = billsData.bills.findIndex((b: any) => b.id === req.params.id);
+      if (billIdx === -1) return res.status(404).json({ success: false, message: "Bill not found" });
+      const bill = billsData.bills[billIdx];
+      if (bill.status !== "SUBMITTED") {
+        return res.status(400).json({ success: false, message: "Only submitted bills can be approved" });
+      }
+      bill.status = "APPROVED";
+      bill.approvedAt = new Date().toISOString();
+      if (!bill.activityLogs) bill.activityLogs = [];
+      bill.activityLogs.push({
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        action: "approved",
+        description: "Bill approved by admin",
+        user: "Admin"
+      });
+      billsData.bills[billIdx] = bill;
+      writeBillsData(billsData);
+      res.json({ success: true, data: bill });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to approve bill" });
     }
   });
 

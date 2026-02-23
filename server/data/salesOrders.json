@@ -8,7 +8,7 @@
       "customerName": "Mr. Ganesh K",
       "orderStatus": "CLOSED",
       "invoiceStatus": "Invoiced",
-      "paymentStatus": "Unpaid",
+      "paymentStatus": "Partially Paid",
       "shipmentStatus": "Pending",
       "items": [
         {
@@ -32,9 +32,9 @@
           "id": "1771824422675",
           "invoiceNumber": "INV-00024",
           "date": "2026-02-23",
-          "dueDate": "2026-02-23",
-          "status": "Draft",
-          "amount": 15000
+          "status": "Partially Paid",
+          "amount": 15000,
+          "balanceDue": 5000
         }
       ],
       "updatedAt": "2026-02-23T05:27:02.673Z",

@@ -794,8 +794,12 @@ function BillDetailPanel({
   const { toast } = useToast();
 
   const handleApproveBill = async () => {
+    const isSubmitted = bill.status?.toUpperCase() === "SUBMITTED";
+    const endpoint = isSubmitted
+      ? `/api/vendor/bills/${bill.id}/approve`
+      : `/api/admin/bills/${bill.id}/approve`;
     try {
-      const response = await fetch(`/api/admin/bills/${bill.id}/approve`, { method: 'PATCH' });
+      const response = await fetch(endpoint, { method: 'PATCH' });
       if (response.ok) {
         toast({ title: "Bill approved" });
         onRefresh?.();
@@ -812,8 +816,12 @@ function BillDetailPanel({
       toast({ title: "Please provide a rejection reason", variant: "destructive" });
       return;
     }
+    const isSubmitted = bill.status?.toUpperCase() === "SUBMITTED";
+    const endpoint = isSubmitted
+      ? `/api/vendor/bills/${bill.id}/reject`
+      : `/api/admin/bills/${bill.id}/reject-vendor-bill`;
     try {
-      const response = await fetch(`/api/admin/bills/${bill.id}/reject-vendor-bill`, {
+      const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: rejectReason })
@@ -987,7 +995,7 @@ function BillDetailPanel({
         </DropdownMenu>
       </div>
 
-      {(bill as any).createdBy === "vendor" && bill.status?.toUpperCase() === "PENDING APPROVAL" && (
+      {(bill as any).createdBy === "vendor" && (bill.status?.toUpperCase() === "PENDING APPROVAL" || bill.status?.toUpperCase() === "SUBMITTED") && (
         <div className="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center gap-3" data-testid="banner-vendor-bill-pending">
           <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
           <span className="text-sm text-amber-800 font-medium flex-1">Vendor-submitted bill awaiting approval</span>
@@ -1016,7 +1024,7 @@ function BillDetailPanel({
         </div>
       )}
 
-      {bill.status?.toUpperCase() === "APPROVED" && (
+      {(bill.status?.toUpperCase() === "APPROVED") && (bill as any).createdBy === "vendor" && (
         <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-center gap-3" data-testid="banner-bill-approved">
           <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
           <span className="text-sm text-green-800 font-medium">Bill approved</span>

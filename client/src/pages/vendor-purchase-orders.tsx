@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -6,7 +7,7 @@ import {
 } from "@/components/ui/resizable";
 import {
   Search, ChevronDown, X, FileText, Printer, Download,
-  Check, Loader2, ShoppingBag
+  Check, Loader2, ShoppingBag, FileInput
 } from "lucide-react";
 import { robustIframePrint } from "@/lib/robust-print";
 import { generatePDFFromElement } from "@/lib/pdf-utils";
@@ -273,6 +274,7 @@ function VendorPODetailPanel({
   onClose,
   onAccept,
   onReject,
+  onConvertToBill,
   isProcessing,
   branding,
   organization
@@ -281,6 +283,7 @@ function VendorPODetailPanel({
   onClose: () => void;
   onAccept: () => void;
   onReject: () => void;
+  onConvertToBill: () => void;
   isProcessing: boolean;
   branding?: any;
   organization?: Organization;
@@ -404,6 +407,21 @@ function VendorPODetailPanel({
             >
               <X className="h-3.5 w-3.5" />
               Reject
+            </Button>
+          </>
+        )}
+        {purchaseOrder.status?.toLowerCase() === "accepted" && (
+          <>
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-xs font-semibold text-blue-600"
+              onClick={onConvertToBill}
+              data-testid="button-convert-to-bill"
+            >
+              <FileInput className="h-3.5 w-3.5" />
+              Convert to Bill
             </Button>
           </>
         )}
@@ -594,6 +612,7 @@ function VendorPODetailPanel({
 export default function VendorPurchaseOrdersPage() {
   const { user, token } = useAuthStore();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const { currentOrganization: organization } = useOrganization();
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
@@ -908,6 +927,7 @@ export default function VendorPurchaseOrdersPage() {
                 onClose={handleClosePanel}
                 onAccept={handleAccept}
                 onReject={() => setShowRejectDialog(true)}
+                onConvertToBill={() => setLocation(`/vendor/bills/new?purchaseOrderId=${selectedPO.id}`)}
                 isProcessing={isProcessing}
                 branding={branding}
                 organization={organization || undefined}

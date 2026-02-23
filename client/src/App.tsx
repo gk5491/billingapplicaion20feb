@@ -89,6 +89,8 @@ import VendorPurchaseOrdersPage from "@/pages/vendor-purchase-orders";
 import VendorBillsPage from "@/pages/vendor-bills";
 import VendorPaymentHistoryPage from "@/pages/vendor-payment-history";
 import VendorReceiptsPage from "@/pages/vendor-receipts";
+import VendorBillCreatePage from "@/pages/vendor-bill-create";
+import VendorItemsPage from "@/pages/vendor-items";
 
 function Router() {
   return (
@@ -112,7 +114,9 @@ function Router() {
               {/* Vendor Routes */}
               <Route path="/vendor/dashboard" component={VendorDashboard} />
               <Route path="/vendor/profile" component={VendorProfilePage} />
+              <Route path="/vendor/items" component={VendorItemsPage} />
               <Route path="/vendor/purchase-orders" component={VendorPurchaseOrdersPage} />
+              <Route path="/vendor/bills/new" component={VendorBillCreatePage} />
               <Route path="/vendor/bills" component={VendorBillsPage} />
               <Route path="/vendor/payment-history" component={VendorPaymentHistoryPage} />
               <Route path="/vendor/receipts" component={VendorReceiptsPage} />
