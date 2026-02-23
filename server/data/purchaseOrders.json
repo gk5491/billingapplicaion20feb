@@ -225,7 +225,7 @@
       "notes": "",
       "termsAndConditions": "",
       "attachments": [],
-      "status": "ISSUED",
+      "status": "Accepted",
       "receiveStatus": "YET TO BE RECEIVED",
       "billedStatus": "YET TO BE BILLED",
       "pdfTemplate": "Standard Template",
@@ -240,7 +240,9 @@
           "description": "Purchase Order created for ₹10,62,000",
           "user": "Admin User"
         }
-      ]
+      ],
+      "acceptedAt": "2026-02-23T09:17:55.152Z",
+      "acceptedBy": "Prajwal K"
     },
     {
       "id": "1770366491443",

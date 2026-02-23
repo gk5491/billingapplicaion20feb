@@ -213,6 +213,8 @@ interface Transaction {
     status: string;
     vendor?: string;
     paidThrough?: string;
+    mode?: string;
+    paidAmount?: number;
 }
 
 interface SystemMail {
@@ -696,6 +698,7 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: VendorDetailPa
     const amountPaid = statementTransactions.filter(tx => tx.type === 'Payment').reduce((sum, tx) => sum + tx.amount, 0);
     const balanceDue = openingBalance + billedAmount - amountPaid;
 
+    const primaryContact = fullVendor.contactPersons?.find(cp => cp.isPrimary) || fullVendor.contactPersons?.[0];
 
     return (
         <div className="h-full flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700">
@@ -800,803 +803,732 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: VendorDetailPa
                 </div>
 
                 <TabsContent value="overview" className="flex-1 overflow-y-auto scrollbar-hide p-0 mt-0">
-                    <div className="p-4 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                            {/* Basic Info Card */}
-                            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex items-center gap-2">
-                                    <Building2 className="h-5 w-5 text-sidebar" />
-                                    <h3 className="font-semibold text-slate-900 dark:text-white">Vendor Information</h3>
+                    <div className="flex h-full">
+                        <div className="w-72 border-r border-slate-200 dark:border-slate-700 p-6 overflow-auto scrollbar-hide">
+                            <div className="space-y-6">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white" data-testid="text-vendor-display-name">{fullVendor.displayName || fullVendor.name}</h3>
+                                    {primaryContact && (
+                                        <div className="flex items-center gap-2 mt-3">
+                                            <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                                                <User className="h-5 w-5 text-slate-500" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-800 font-display" data-testid="text-contact-person">{primaryContact.salutation ? `${primaryContact.salutation} ` : ''}{primaryContact.firstName} {primaryContact.lastName}</p>
+                                                <p className="text-xs text-sidebar font-medium font-display" data-testid="text-vendor-email">{primaryContact.email || fullVendor.email}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!primaryContact && fullVendor.email && (
+                                        <p className="text-sm text-sidebar font-medium mt-2 font-display" data-testid="text-vendor-email-only">{fullVendor.email}</p>
+                                    )}
                                 </div>
-                                <div className="p-5 space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+
+                                <Collapsible defaultOpen>
+                                    <CollapsibleTrigger className="flex items-center justify-between w-full text-[11px] font-bold text-sidebar/60 uppercase tracking-widest font-display">
+                                        ADDRESS
+                                        <ChevronDown className="h-3.5 w-3.5" />
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="mt-3 space-y-4">
+                                        <div className="mt-4">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-display">Billing Address</p>
+                                            </div>
+                                            <div className="text-sm mt-1">
+                                                {formatVendorAddress(fullVendor.billingAddress).map((line, i) => (
+                                                    <p key={i}>{line}</p>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="mt-4">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-display">Shipping Address</p>
+                                            </div>
+                                            <div className="text-sm mt-1">
+                                                {formatVendorAddress(fullVendor.shippingAddress).map((line, i) => (
+                                                    <p key={i}>{line}</p>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+
+                                <Collapsible defaultOpen>
+                                    <CollapsibleTrigger className="flex items-center justify-between w-full text-[11px] font-bold text-sidebar/60 uppercase tracking-widest font-display">
+                                        OTHER DETAILS
+                                        <ChevronDown className="h-3.5 w-3.5" />
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="mt-4 space-y-4 text-sm">
                                         <div>
-                                            <p className="text-xs text-slate-500 uppercase font-semibold">Vendor Name</p>
-                                            <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">{fullVendor.name}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-display">Vendor Type</p>
+                                            <p className="font-semibold text-slate-700 font-display">Business</p>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-slate-500 uppercase font-semibold">Display Name</p>
-                                            <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">{fullVendor.displayName || '-'}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-display">Default Currency</p>
+                                            <p className="font-semibold text-slate-700 font-display">{fullVendor.currency || 'INR'}</p>
                                         </div>
-                                        <div>
-                                            <p className="text-xs text-slate-500 uppercase font-semibold">Company Name</p>
-                                            <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">{fullVendor.companyName || '-'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-slate-500 uppercase font-semibold">GSTIN</p>
-                                            <p className="text-sm font-medium text-sidebar mt-1 uppercase">{fullVendor.gstin || '-'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-slate-500 uppercase font-semibold">GST Treatment</p>
-                                            <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">{fullVendor.gstTreatment || '-'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-slate-500 uppercase font-semibold">Currency</p>
-                                            <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">{fullVendor.currency || 'INR'}</p>
-                                        </div>
+                                        {fullVendor.gstTreatment && (
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-display">GST Treatment</p>
+                                                <p className="font-semibold text-slate-700 font-display">{fullVendor.gstTreatment}</p>
+                                            </div>
+                                        )}
+                                        {fullVendor.gstin && (
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-display">GSTIN</p>
+                                                <p className="font-semibold text-slate-700 font-display">{fullVendor.gstin}</p>
+                                            </div>
+                                        )}
                                         {fullVendor.pan && (
                                             <div>
-                                                <p className="text-xs text-slate-500 uppercase font-semibold">PAN</p>
-                                                <p className="text-sm font-medium text-slate-900 dark:text-white mt-1 font-mono">{fullVendor.pan}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-display">PAN</p>
+                                                <p className="font-semibold text-slate-700 font-display font-mono">{fullVendor.pan}</p>
                                             </div>
                                         )}
-                                        {fullVendor.expenseAccount && (
+                                        {fullVendor.sourceOfSupply && (
                                             <div>
-                                                <p className="text-xs text-slate-500 uppercase font-semibold">Expense Account</p>
-                                                <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">{fullVendor.expenseAccount}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-display">Source of Supply</p>
+                                                <p className="font-semibold text-slate-700 font-display">{fullVendor.sourceOfSupply}</p>
                                             </div>
                                         )}
-                                    </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </div>
+                        </div>
 
-                                    {fullVendor.msmeRegistered && (
-                                        <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Tag className="h-4 w-4 text-orange-500" />
-                                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">MSME Details</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4 bg-orange-50/50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100 dark:border-orange-900/20">
-                                                <div>
-                                                    <p className="text-[10px] text-orange-600 dark:text-orange-400 uppercase font-bold">Type</p>
-                                                    <p className="text-xs font-medium text-slate-900 dark:text-white capitalize">{fullVendor.msmeRegistrationType}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] text-orange-600 dark:text-orange-400 uppercase font-bold">Registration No</p>
-                                                    <p className="text-xs font-medium text-slate-900 dark:text-white font-mono">{fullVendor.msmeRegistrationNumber}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                        <div className="flex-1 overflow-auto scrollbar-hide">
+                            <div className="w-full">
+                                <div className="bg-sidebar/5 border border-sidebar/20 rounded-lg p-4 mb-6 mx-6 mt-6">
+                                    <p className="text-sm text-sidebar font-display">
+                                        You can request your contact to directly update the GSTIN by sending an email.{' '}
+                                        <button className="text-sidebar font-bold hover:underline ml-1">Send email</button>
+                                    </p>
+                                </div>
 
-                                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700 grid grid-cols-2 gap-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-lg bg-sidebar/5 dark:bg-sidebar/20 text-sidebar">
-                                                <Mail className="h-4 w-4" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] text-slate-500 uppercase font-bold truncate">Email</p>
-                                                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{fullVendor.email || '-'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/30 text-green-600">
-                                                <Phone className="h-4 w-4" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] text-slate-500 uppercase font-bold truncate">Phone</p>
-                                                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{fullVendor.phone || fullVendor.mobile || '-'}</p>
-                                            </div>
+                                <div className="mb-6 mx-6">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-display">Payment due period</p>
+                                    <p className="text-sm font-semibold text-slate-700 font-display">{fullVendor.paymentTerms || 'Due on Receipt'}</p>
+                                </div>
+
+                                <div className="mb-6 mx-6">
+                                    <h4 className="text-lg font-semibold mb-4 text-sidebar font-display">Payables</h4>
+                                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-sidebar-accent/5">
+                                                <tr className="text-left text-sidebar/60 border-b border-slate-200">
+                                                    <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider font-display">CURRENCY</th>
+                                                    <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-wider font-display">OUTSTANDING PAYABLES</th>
+                                                    <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-wider font-display">UNUSED CREDITS</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr className="group hover:bg-slate-50 transition-colors">
+                                                    <td className="px-4 py-3 font-medium text-slate-700 font-display">INR- Indian Rupee</td>
+                                                    <td className="px-4 py-3 text-right font-semibold text-sidebar font-display">{formatCurrency(fullVendor.payables || 0)}</td>
+                                                    <td className="px-4 py-3 text-right font-semibold text-green-600 font-display">{formatCurrency(fullVendor.unusedCredits || 0)}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <button className="text-sm text-sidebar font-semibold mt-3 hover:text-sidebar/80 transition-colors font-display">Enter Opening Balance</button>
+                                </div>
+
+                                <div className="mb-6 mx-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-lg font-semibold text-sidebar font-display">Expenses</h4>
+                                        <div className="flex items-center gap-2">
+                                            <Select value={expensePeriod} onValueChange={setExpensePeriod}>
+                                                <SelectTrigger className="w-36 h-8 text-sm border-slate-200 hover:border-sidebar/30 transition-colors">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="last-6-months">Last 6 Months</SelectItem>
+                                                    <SelectItem value="last-12-months">Last 12 Months</SelectItem>
+                                                    <SelectItem value="this-year">This Year</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <Select value={expenseMethod} onValueChange={setExpenseMethod}>
+                                                <SelectTrigger className="w-28 h-8 text-sm border-slate-200 hover:border-sidebar/30 transition-colors">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="accrual">Accrual</SelectItem>
+                                                    <SelectItem value="cash">Cash</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </div>
-                                    {(fullVendor.isCrm || fullVendor.isPortalEnabled) && (
-                                        <div className="flex gap-2 pt-2">
-                                            {fullVendor.isCrm && <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-600 border-blue-100">CRM Vendor</Badge>}
-                                            {fullVendor.isPortalEnabled && <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-600 border-purple-100">Portal Enabled</Badge>}
-                                        </div>
-                                    )}
+                                    <p className="text-xs text-slate-500 mb-4 font-display">This chart is displayed in the organization's base currency.</p>
+                                    <div className="h-40 bg-slate-50 rounded-lg flex items-end justify-around px-4 pb-2 border border-slate-100 mb-2">
+                                        {expenseData.months.map((m, i) => {
+                                            const maxExpense = Math.max(...expenseData.months.map(m => m.expense), 1);
+                                            const height = (m.expense / maxExpense) * 100;
+                                            return (
+                                                <div key={i} className="flex flex-col items-center flex-1 group relative">
+                                                    <div
+                                                        className="w-8 bg-sidebar/20 rounded-t-sm group-hover:bg-sidebar/40 transition-all duration-300 relative"
+                                                        style={{ height: `${Math.max(2, height * 0.8)}%` }}
+                                                    >
+                                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 shadow-lg font-mono">
+                                                            {formatCurrency(m.expense)}
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-slate-400 mt-2 uppercase font-display">{m.label}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-sm mt-4 font-medium text-slate-700 font-display">
+                                        Total Expenses ({expensePeriod === 'last-6-months' ? 'Last 6 Months' : expensePeriod === 'last-12-months' ? 'Last 12 Months' : 'This Year'}) - <span className="text-sidebar font-bold">{formatCurrency(expenseData.totalExpense)}</span>
+                                    </p>
+                                </div>
+
+                                <div className="mx-6 pb-6">
+                                    <h4 className="text-lg font-semibold mb-4">Activity Timeline</h4>
+                                    <div className="space-y-4">
+                                        {activities.length === 0 ? (
+                                            <div className="text-center py-8 text-slate-500">
+                                                <Clock className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                                                <p className="text-sm">No activities yet</p>
+                                            </div>
+                                        ) : (
+                                            activities.map((activity) => {
+                                                const { date, time } = formatDateTime(activity.date);
+                                                return (
+                                                    <div key={activity.id} className="flex gap-4">
+                                                        <div className="text-right text-[11px] font-bold text-slate-400 w-24 flex-shrink-0 uppercase font-display">
+                                                            <p>{date}</p>
+                                                            <p className="text-slate-300">{time}</p>
+                                                        </div>
+                                                        <div className="relative">
+                                                            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px] bg-slate-200"></div>
+                                                            <div className="relative z-10 h-3 w-3 bg-white border-2 border-sidebar rounded-full mt-1"></div>
+                                                        </div>
+                                                        <div className="flex-1 bg-slate-50/50 border border-slate-100 rounded-lg p-3 hover:bg-slate-50 transition-colors">
+                                                            <h5 className="font-bold text-sm text-slate-800 font-display">{activity.title}</h5>
+                                                            <p className="text-sm text-slate-600 mt-1 font-display leading-relaxed">{activity.description}</p>
+                                                            <p className="text-xs text-slate-500 mt-2 font-display">
+                                                                by <span className="text-sidebar font-semibold">{activity.user}</span>
+                                                                {activity.type === 'bill' && (
+                                                                    <button className="text-sidebar font-semibold ml-2 hover:underline">- View Details</button>
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-
-                            {/* Payables Card */}
-                            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <BadgeIndianRupee className="h-5 w-5 text-green-600" />
-                                        <h3 className="font-semibold text-slate-900 dark:text-white">Payables & Balances</h3>
-                                    </div>
-                                    <Badge className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border-none">Active</Badge>
-                                </div>
-                                <div className="p-6 space-y-6">
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30">
-                                            <p className="text-xs text-orange-600 dark:text-orange-400 font-bold uppercase mb-1">Total Payables</p>
-                                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(fullVendor.payables || 0)}</p>
-                                        </div>
-                                        <div className="p-4 rounded-xl bg-sidebar/5 dark:bg-sidebar/20 border border-sidebar/10 dark:border-sidebar/30">
-                                            <p className="text-xs text-sidebar dark:text-sidebar/80 font-bold uppercase mb-1">Unused Credits</p>
-                                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(fullVendor.unusedCredits || 0)}</p>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div className="flex justify-between p-2 border-b border-slate-100 dark:border-slate-700">
-                                            <span className="text-slate-500">Opening Balance</span>
-                                            <span className="font-medium">{formatCurrency(fullVendor.openingBalance || 0)}</span>
-                                        </div>
-                                        <div className="flex justify-between p-2 border-b border-slate-100 dark:border-slate-700">
-                                            <span className="text-slate-500">Payment Terms</span>
-                                            <span className="font-medium text-sidebar">{fullVendor.paymentTerms || 'Due on Receipt'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Addresses Card */}
-                            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden col-span-1 lg:col-span-2">
-                                <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex items-center gap-2">
-                                    <MapPin className="h-5 w-5 text-red-600" />
-                                    <h3 className="font-semibold text-slate-900 dark:text-white">Addresses</h3>
-                                </div>
-                                <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Billing Address</h4>
-                                            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-sidebar">Copy to Shipping</Button>
-                                        </div>
-                                        <div className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg">
-                                            {fullVendor.billingAddress?.street1 || fullVendor.billingAddress?.street2 || fullVendor.billingAddress?.city ? (
-                                                <>
-                                                    <p className="font-medium text-slate-900 dark:text-slate-200">{fullVendor.billingAddress.attention || fullVendor.name}</p>
-                                                    <p>{fullVendor.billingAddress.street1}</p>
-                                                    {fullVendor.billingAddress.street2 && <p>{fullVendor.billingAddress.street2}</p>}
-                                                    <p>{fullVendor.billingAddress.city}, {fullVendor.billingAddress.state} - {fullVendor.billingAddress.pinCode}</p>
-                                                    <p>{fullVendor.billingAddress.country}</p>
-                                                    {(fullVendor.billingAddress.phone || fullVendor.billingAddress.faxNumber) && (
-                                                        <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] space-y-0.5">
-                                                            {fullVendor.billingAddress.phone && <p>Phone: {fullVendor.billingAddress.phone}</p>}
-                                                            {fullVendor.billingAddress.faxNumber && <p>Fax: {fullVendor.billingAddress.faxNumber}</p>}
-                                                        </div>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <p className="text-slate-400 italic">No billing address specified</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Shipping Address</h4>
-                                        <div className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg">
-                                            {fullVendor.shippingAddress?.street1 || fullVendor.shippingAddress?.street2 || fullVendor.shippingAddress?.city ? (
-                                                <>
-                                                    <p className="font-medium text-slate-900 dark:text-slate-200">{fullVendor.shippingAddress.attention || fullVendor.name}</p>
-                                                    <p>{fullVendor.shippingAddress.street1}</p>
-                                                    {fullVendor.shippingAddress.street2 && <p>{fullVendor.shippingAddress.street2}</p>}
-                                                    <p>{fullVendor.shippingAddress.city}, {fullVendor.shippingAddress.state} - {fullVendor.shippingAddress.pinCode}</p>
-                                                    <p>{fullVendor.shippingAddress.country}</p>
-                                                    {(fullVendor.shippingAddress.phone || fullVendor.shippingAddress.faxNumber) && (
-                                                        <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] space-y-0.5">
-                                                            {fullVendor.shippingAddress.phone && <p>Phone: {fullVendor.shippingAddress.phone}</p>}
-                                                            {fullVendor.shippingAddress.faxNumber && <p>Fax: {fullVendor.shippingAddress.faxNumber}</p>}
-                                                        </div>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <p className="text-slate-400 italic">No shipping address specified</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Bank Details Card */}
-                                {fullVendor.bankDetails && (fullVendor.bankDetails.bankName || fullVendor.bankDetails.accountNumber) && (
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden col-span-1 lg:col-span-2">
-                                        <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex items-center gap-2">
-                                            <CreditCard className="h-5 w-5 text-sidebar" />
-                                            <h3 className="font-semibold text-slate-900 dark:text-white">Bank Details</h3>
-                                        </div>
-                                        <div className="p-5">
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                <div>
-                                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Account Holder</p>
-                                                    <p className="text-sm font-medium text-slate-900 dark:text-white">{fullVendor.bankDetails.accountHolderName || '-'}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Bank Name</p>
-                                                    <p className="text-sm font-medium text-slate-900 dark:text-white">{fullVendor.bankDetails.bankName || '-'}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Branch Name</p>
-                                                    <p className="text-sm font-medium text-slate-900 dark:text-white">{fullVendor.bankDetails.branchName || '-'}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Account Number</p>
-                                                    <p className="text-sm font-medium text-sidebar font-mono">{fullVendor.bankDetails.accountNumber || '-'}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">IFSC Code</p>
-                                                    <p className="text-sm font-medium text-sidebar font-mono uppercase">{fullVendor.bankDetails.ifscCode || '-'}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">SWIFT Code</p>
-                                                    <p className="text-sm font-medium text-slate-900 dark:text-white font-mono uppercase">{fullVendor.bankDetails.swiftCode || '-'}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Contact Persons Section */}
-                                {fullVendor.contactPersons && fullVendor.contactPersons.length > 0 && (
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden col-span-1 lg:col-span-2">
-                                        <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex items-center gap-2">
-                                            <User className="h-5 w-5 text-blue-600" />
-                                            <h3 className="font-semibold text-slate-900 dark:text-white">Contact Persons</h3>
-                                        </div>
-                                        <div className="p-0 divide-y divide-slate-100 dark:divide-slate-700">
-                                            {fullVendor.contactPersons.map((cp, idx) => (
-                                                <div key={idx} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold">
-                                                            {cp.firstName?.charAt(0) || cp.lastName?.charAt(0) || 'U'}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{cp.salutation} {cp.firstName} {cp.lastName}</p>
-                                                            <p className="text-xs text-slate-500">{cp.email || 'No email specified'}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-6">
-                                                        {cp.workPhone && (
-                                                            <div className="text-right">
-                                                                <p className="text-[10px] text-slate-400 uppercase font-bold">Work</p>
-                                                                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{cp.workPhone}</p>
-                                                            </div>
-                                                        )}
-                                                        {cp.mobile && (
-                                                            <div className="text-right">
-                                                                <p className="text-[10px] text-slate-400 uppercase font-bold">Mobile</p>
-                                                                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{cp.mobile}</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                    {fullVendor.remarks && (
-                                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden col-span-1 lg:col-span-2">
-                                            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex items-center gap-2">
-                                                <Notebook className="h-5 w-5 text-amber-500" />
-                                                <h3 className="font-semibold text-slate-900 dark:text-white">Internal Remarks</h3>
-                                            </div>
-                                            <div className="p-5">
-                                                <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-100 dark:border-amber-900/20">
-                                                    <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{fullVendor.remarks}"</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Activity Timeline Section */}
-                                    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden col-span-1 lg:col-span-2">
-                                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="h-10 w-10 rounded-xl bg-sidebar/10 flex items-center justify-center text-sidebar">
-                                                    <Clock className="h-5 w-5" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-bold text-slate-900 dark:text-white">Recent Activity</h3>
-                                                    <p className="text-xs text-slate-500 font-medium">Real-time event tracking</p>
-                                                </div>
-                                            </div>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="sm" 
-                                                onClick={fetchVendorData}
-                                                className="h-9 px-3 text-sidebar hover:bg-sidebar/5 font-semibold gap-2"
-                                            >
-                                                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-                                                Refresh
-                                            </Button>
-                                        </div>
-                                        <div className="p-0">
-                                            {activities.length === 0 ? (
-                                                <div className="p-12 text-center bg-slate-50/50 dark:bg-slate-900/50">
-                                                    <div className="h-16 w-16 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center mx-auto mb-4">
-                                                        <Clock className="h-8 w-8 text-slate-300" />
-                                                    </div>
-                                                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">No activity yet</h4>
-                                                    <p className="text-xs text-slate-500 mt-1 max-w-[200px] mx-auto leading-relaxed">System logs for transactions and updates will appear here automatically.</p>
-                                                </div>
-                                            ) : (
-                                                <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                                    {activities.map((activity) => {
-                                                        const { date, time } = formatDateTime(activity.date);
-                                                        const typeColors: Record<string, string> = {
-                                                            'bill': 'bg-blue-50 text-blue-600 border-blue-100',
-                                                            'payment': 'bg-green-50 text-green-600 border-green-100',
-                                                            'vendor_credit': 'bg-purple-50 text-purple-600 border-purple-100',
-                                                            'expense': 'bg-orange-50 text-orange-600 border-orange-100'
-                                                        };
-                                                        
-                                                        return (
-                                                            <div key={activity.id} className="p-6 flex gap-6 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all duration-300 group">
-                                                                <div className="flex flex-col items-center gap-2 w-16 flex-shrink-0">
-                                                                    <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{time.split(' ')[1]}</span>
-                                                                    <div className="h-10 w-10 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-sidebar/30 transition-all duration-300">
-                                                                        <span className="text-[10px] font-bold text-slate-900 dark:text-white">{time.split(' ')[0]}</span>
-                                                                    </div>
-                                                                    <div className="w-px h-full bg-slate-100 dark:bg-slate-800 group-last:hidden"></div>
-                                                                </div>
-                                                                <div className="flex-1 space-y-3">
-                                                                    <div className="flex items-center justify-between gap-4">
-                                                                        <div className="space-y-1">
-                                                                            <h5 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">{activity.title}</h5>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Badge variant="outline" className={cn("text-[10px] px-1.5 h-4.5 font-black uppercase tracking-widest", typeColors[activity.type] || 'bg-slate-50 text-slate-500 border-slate-100')}>
-                                                                                    {activity.type.replace('_', ' ')}
-                                                                                </Badge>
-                                                                                <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600">•</span>
-                                                                                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{date}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="flex -space-x-2">
-                                                                            <div className="h-8 w-8 rounded-full border-2 border-white dark:border-slate-800 bg-sidebar/10 text-sidebar flex items-center justify-center text-[10px] font-bold uppercase shadow-sm">
-                                                                                {activity.user.charAt(0)}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 p-4 rounded-2xl shadow-sm group-hover:border-sidebar/20 transition-all duration-300">
-                                                                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{activity.description}</p>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-400">
-                                                                        <span>Modified by</span>
-                                                                        <span className="text-sidebar bg-sidebar/5 px-2 py-0.5 rounded-full">{activity.user}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
                         </div>
                     </div>
                 </TabsContent>
 
-                <TabsContent value="comments" className="flex-1 overflow-y-auto scrollbar-hide p-0 mt-0">
-                    <div className="flex-1 overflow-auto scrollbar-hide p-6">
-                        <div className="max-w-3xl mx-auto space-y-6">
-                            {comments.length === 0 ? (
-                                <div className="text-center py-20 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                                    <MessageSquare className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                                    <h3 className="text-lg font-medium text-slate-900 dark:text-white">No comments yet</h3>
-                                    <p className="text-slate-500 max-w-xs mx-auto mt-1">Add notes or internal comments about this vendor to keep your team informed.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-1">
-                                    <h3 className="text-sm font-bold text-slate-400 uppercase mb-4 px-2">Recent Comments</h3>
-                                    <div className="space-y-4">
-                                        {comments.map((comment) => (
-                                            <div key={comment.id} className="flex gap-4 p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
-                                                <div className="h-10 w-10 rounded-xl bg-sidebar/10 dark:bg-sidebar/20 text-sidebar flex items-center justify-center font-bold text-lg flex-none">
-                                                    {comment.author.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <span className="font-semibold text-slate-900 dark:text-white">{comment.author}</span>
-                                                        <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
-                                                            <Clock className="h-3 w-3" />
-                                                            {formatDate(comment.createdAt)}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{comment.text}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
-                        <div className="max-w-3xl mx-auto">
-                            <div className="relative group">
-                                <Textarea
-                                    placeholder="Type a comment or internal note..."
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    className="min-h-[100px] bg-slate-50 dark:bg-slate-800 border-none focus-visible:ring-1 focus-visible:ring-sidebar rounded-xl p-4 pr-16 text-sm resize-none shadow-inner"
-                                />
+                <TabsContent value="comments" className="flex-1 overflow-y-auto scrollbar-hide p-6 mt-0">
+                    <div className="w-full p-6 max-w-4xl mx-auto">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden mb-8 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
+                            <div className="flex items-center gap-1 p-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                    onClick={() => applyFormatting('bold')}
+                                    title="Bold (**text**)"
+                                >
+                                    <Bold className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                    onClick={() => applyFormatting('italic')}
+                                    title="Italic (*text*)"
+                                >
+                                    <Italic className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                    onClick={() => applyFormatting('underline')}
+                                    title="Underline (__text__)"
+                                >
+                                    <Underline className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <Textarea
+                                ref={commentRef}
+                                placeholder="Write a comment... (Markdown supported)"
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                className="border-0 focus-visible:ring-0 min-h-32 resize-none p-4 text-sm bg-transparent"
+                                data-testid="input-comment"
+                            />
+                            <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
                                 <Button
                                     onClick={handleAddComment}
-                                    disabled={!newComment.trim()}
-                                    className="absolute right-3 bottom-3 h-10 w-10 rounded-lg p-0 bg-sidebar hover:bg-sidebar/90 shadow-lg shadow-sidebar/20"
+                                    disabled={!newComment.trim() || isAddingComment}
+                                    size="sm"
+                                    className="bg-sidebar hover:bg-sidebar/90 text-white font-bold font-display px-6 shadow-sm"
+                                    data-testid="button-add-comment"
                                 >
-                                    <Send className="h-5 w-5" />
+                                    {isAddingComment ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Adding...
+                                        </>
+                                    ) : "Add Comment"}
                                 </Button>
                             </div>
                         </div>
-                    </div>
-                </TabsContent>
 
-                <TabsContent value="transactions" className="flex-1 overflow-y-auto scrollbar-hide p-6 mt-0" data-vendor-transactions-scroll-container>
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 animate-pulse">
-                            <Loader2 className="h-10 w-10 text-sidebar animate-spin mb-4" />
-                            <p className="text-slate-500 font-medium">Fetching transaction history...</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Go to transactions dropdown */}
-                            <div className="flex items-center justify-between mb-4">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm" className="gap-1.5">
-                                            Go to transactions
-                                            <ChevronDown className="h-3 w-3" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="start" className="w-48">
-                                        {[
-                                            { id: 'bills', label: 'Bills' },
-                                            { id: 'billPayments', label: 'Payments Made' },
-                                            { id: 'expenses', label: 'Expenses' },
-                                            { id: 'purchaseOrders', label: 'Purchase Orders' },
-                                            { id: 'vendorCredits', label: 'Vendor Credits' }
-                                        ].map((section) => (
-                                            <DropdownMenuItem
-                                                key={section.id}
-                                                onClick={() => {
-                                                    // First expand the section
-                                                    setExpandedSections((prev: Record<string, boolean>) => ({ ...prev, [section.id]: true }));
-                                                    // Use timeout to allow section to expand fully
-                                                    setTimeout(() => {
-                                                        const element = document.getElementById(`vendor-section-${section.id}`);
-                                                        const scrollContainer = document.querySelector('[data-vendor-transactions-scroll-container]');
-                                                        if (element && scrollContainer) {
-                                                            // Get the parent container's padding/offset (the div with p-6 = 24px)
-                                                            const containerPadding = 24;
-                                                            // Calculate scroll position - element's position relative to container
-                                                            const elementTop = element.offsetTop;
-
-                                                            scrollContainer.scrollTo({
-                                                                top: elementTop - containerPadding - 60, // 60px offset for the dropdown header
-                                                                behavior: 'smooth'
-                                                            });
-                                                        } else if (element) {
-                                                            element.scrollIntoView({
-                                                                behavior: 'smooth',
-                                                                block: 'start'
-                                                            });
-                                                        }
-                                                    }, 300);
-                                                }}
-                                            >
-                                                {section.label}
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                            <div className="space-y-4">
-                                {[
-                                    { id: 'bills', label: 'Bills', icon: Receipt, count: transactions.bills.length, items: transactions.bills },
-                                    { id: 'billPayments', label: 'Payments Made', icon: CreditCard, count: transactions.billPayments.length, items: transactions.billPayments },
-                                    { id: 'expenses', label: 'Expenses', icon: BadgeIndianRupee, count: transactions.expenses.length, items: transactions.expenses },
-                                    { id: 'purchaseOrders', label: 'Purchase Orders', icon: Briefcase, count: transactions.purchaseOrders.length, items: transactions.purchaseOrders },
-                                    { id: 'vendorCredits', label: 'Vendor Credits', icon: Notebook, count: transactions.vendorCredits.length, items: transactions.vendorCredits }
-                                ].map((section) => (
-                                    <Collapsible
-                                        key={section.id}
-                                        open={expandedSections[section.id]}
-                                        onOpenChange={() => toggleSection(section.id)}
-                                    >
-                                        <div id={`vendor-section-${section.id}`} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                            <CollapsibleTrigger asChild>
-                                                <div className="w-full px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`p-2 rounded-lg ${section.count > 0 ? 'bg-sidebar/5 dark:bg-sidebar/20 text-sidebar' : 'bg-slate-50 dark:bg-slate-700 text-slate-400'}`}>
-                                                            <section.icon className="h-4 w-4" />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="text-sm font-semibold text-slate-900 dark:text-white capitalize">{section.label}</h4>
-                                                            <p className="text-xs text-slate-500">{section.count} {section.count === 1 ? 'record' : 'records'}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        {section.count > 0 && <Badge variant="outline" className="bg-sidebar/5 text-sidebar border-sidebar/20 hidden sm:inline-flex">View All</Badge>}
-                                                        <div className={`p-1 rounded-md bg-slate-100 dark:bg-slate-700 transition-transform duration-200 ${expandedSections[section.id] ? 'rotate-180' : ''}`}>
-                                                            <ChevronDown className="h-4 w-4 text-slate-500" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </CollapsibleTrigger>
-                                            <CollapsibleContent>
-                                                <div className="border-t border-slate-100 dark:border-slate-700 overflow-x-auto">
-                                                    {section.items.length === 0 ? (
-                                                        <div className="px-5 py-8 text-center bg-slate-50/30 dark:bg-slate-900/10">
-                                                            <p className="text-sm text-slate-400">No {section.label.toLowerCase()} found for this period.</p>
-                                                        </div>
-                                                    ) : (
-                                                        <table className="w-full text-sm">
-                                                            <thead>
-                                                                <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
-                                                                    <th className="px-5 py-2.5 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</th>
-                                                                    <th className="px-5 py-2.5 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Number</th>
-                                                                    <th className="px-5 py-2.5 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                                                                    <th className="px-5 py-2.5 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">Amount</th>
-                                                                    <th className="px-5 py-2.5 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">Amount Sent</th>
-                                                                    <th className="px-5 py-2.5 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">Due Balance</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                                                {section.items.map((item) => (
-                                                                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors group" onClick={() => {
-                                                                        const basePath = section.id === 'billPayments' ? 'payments-made' :
-                                                                            section.id === 'vendorCredits' ? 'vendor-credits' :
-                                                                                section.id === 'purchaseOrders' ? 'purchase-orders' :
-                                                                                    section.id;
-                                                                        setLocation(`/${basePath}?id=${item.id}`);
-                                                                    }}>
-                                                                        <td className="px-5 py-3 text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">{formatDate(item.date)}</td>
-                                                                        <td className="px-5 py-3 whitespace-nowrap">
-                                                                            <div className="text-sidebar font-semibold group-hover:underline decoration-sidebar/30 underline-offset-4">{item.number}</div>
-                                                                            {item.mode && (
-                                                                                <div className="text-[10px] text-slate-400 font-medium mt-0.5">{item.mode}</div>
-                                                                            )}
-                                                                        </td>
-                                                                        <td className="px-5 py-3">
-                                                                            <Badge variant="outline" className={`
-                                                                        ${item.status === 'Paid' || item.status === 'Sent' || item.status === 'Closed' ? 'bg-green-50 text-green-600 border-green-200' : ''}
-                                                                        ${item.status === 'Partially Paid' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' : ''}
-                                                                        ${item.status === 'Open' || item.status === 'Draft' ? 'bg-sidebar/5 text-sidebar border-sidebar/20' : ''}
-                                                                        ${item.status === 'Overdue' ? 'bg-red-50 text-red-600 border-red-200' : ''}
-                                                                    `}>
-                                                                                {item.status}
-                                                                            </Badge>
-                                                                        </td>
-                                                                        <td className="px-5 py-3 text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(item.amount)}</td>
-                                                                        <td className="px-5 py-3 text-right font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">{formatCurrency(item.paidAmount || 0)}</td>
-                                                                        <td className="px-5 py-3 text-right font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">{formatCurrency(item.balance)}</td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    )}
-                                                </div>
-                                            </CollapsibleContent>
-                                        </div>
-                                    </Collapsible>
-                                ))}
-                            </div>
-                        </>
-                    )}
-                </TabsContent>
-
-                <TabsContent value="mails" className="flex-1 overflow-y-auto scrollbar-hide p-6 mt-0">
-                    <div className="max-w-4xl mx-auto">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Mail className="h-5 w-5 text-sidebar" />
-                                Communication History
-                            </h3>
-                            <Button variant="outline" size="sm" className="gap-2">
-                                <Send className="h-4 w-4" /> Send Email
-                            </Button>
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="h-px flex-1 bg-slate-100" />
+                            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-display">All Comments</h4>
+                            <div className="h-px flex-1 bg-slate-100" />
                         </div>
 
-                        {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20">
-                                <Loader2 className="h-8 w-8 text-sidebar animate-spin mb-4" />
-                                <p className="text-slate-500">Loading mails...</p>
-                            </div>
-                        ) : mails.length === 0 ? (
-                            <div className="text-center py-24 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                                <Mail className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                                <h3 className="text-lg font-medium text-slate-900 dark:text-white">No mails sent yet</h3>
-                                <p className="text-slate-500 max-w-xs mx-auto mt-1">When you send statements, bills, or receipts to this vendor, they will appear here.</p>
+                        {comments.length === 0 ? (
+                            <div className="text-center py-12 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                                <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                                <p className="text-slate-500 font-medium">No comments yet.</p>
+                                <p className="text-xs text-slate-400 mt-1">Be the first to share your thoughts!</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {mails.map((mail) => (
-                                    <div key={mail.id} className="p-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all group">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex gap-4">
-                                                <div className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 group-hover:bg-sidebar/5 dark:group-hover:bg-sidebar/20 group-hover:text-sidebar transition-colors">
-                                                    <Mail className="h-5 w-5" />
+                                {comments.map((comment) => (
+                                    <div key={comment.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-sidebar/10 flex items-center justify-center text-sidebar font-bold text-xs uppercase font-display">
+                                                    {comment.author.substring(0, 2)}
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <h4 className="font-semibold text-slate-900 dark:text-white truncate group-hover:text-sidebar transition-colors">{mail.subject}</h4>
-                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
-                                                        <span className="text-xs text-slate-500 flex items-center gap-1">
-                                                            <User className="h-3 w-3" /> To: {mail.to}
-                                                        </span>
-                                                        <span className="text-xs text-slate-500 flex items-center gap-1">
-                                                            <Clock className="h-3 w-3" /> {formatDate(mail.date)}
-                                                        </span>
-                                                    </div>
+                                                <div>
+                                                    <p className="font-bold text-sm text-slate-900 dark:text-slate-100">{comment.author}</p>
+                                                    <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        {formatDateTime(comment.createdAt).date} at {formatDateTime(comment.createdAt).time}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <Badge className={`
-                                                ${mail.status === 'Sent' || mail.status === 'Delivered' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-slate-100 text-slate-600 border-slate-200'}
-                                            `}>
-                                                {mail.status}
-                                            </Badge>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                                onClick={() => handleDeleteComment(comment.id)}
+                                                title="Delete comment"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+                                        <div className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap pl-11">
+                                            <RenderComment text={comment.text} />
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
-                </TabsContent >
+                </TabsContent>
 
-                <TabsContent value="statement" className="flex-1 overflow-y-auto scrollbar-hide p-0 mt-0">
-                    <div className="flex-none p-4 px-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
+                <TabsContent value="transactions" className="flex-1 overflow-y-auto scrollbar-hide p-6 mt-0" data-vendor-transactions-scroll-container>
+                    <div className="p-6">
+                        <div className="flex items-center justify-between mb-4">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm" className="gap-2">
-                                        <Filter className="h-4 w-4" /> This Month
-                                        <ChevronDown className="h-3 w-3" />
+                                    <Button variant="outline" size="sm" className="gap-1.5 font-bold font-display border-slate-200 hover:border-sidebar/30 text-sidebar" data-testid="button-goto-transactions">
+                                        Go to transactions
+                                        <ChevronDown className="h-4 w-4 opacity-50" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start">
-                                    <DropdownMenuItem>This Month</DropdownMenuItem>
-                                    <DropdownMenuItem>Last Month</DropdownMenuItem>
-                                    <DropdownMenuItem>This Quarter</DropdownMenuItem>
-                                    <DropdownMenuItem>Last Quarter</DropdownMenuItem>
-                                    <DropdownMenuItem>Financial Year</DropdownMenuItem>
-                                    <DropdownMenuItem>Custom Range</DropdownMenuItem>
+                                <DropdownMenuContent align="start" className="w-48">
+                                    {transactionSections.map((section) => (
+                                        <DropdownMenuItem
+                                            key={section.key}
+                                            onClick={() => {
+                                                setExpandedSections((prev: Record<string, boolean>) => ({ ...prev, [section.key]: true }));
+                                                setTimeout(() => {
+                                                    const element = document.getElementById(`section-${section.key}`);
+                                                    const scrollContainer = document.querySelector('[data-vendor-transactions-scroll-container]');
+                                                    if (element && scrollContainer) {
+                                                        const containerPadding = 24;
+                                                        const elementTop = element.offsetTop;
+                                                        scrollContainer.scrollTo({
+                                                            top: elementTop - containerPadding - 60,
+                                                            behavior: 'smooth'
+                                                        });
+                                                    } else if (element) {
+                                                        element.scrollIntoView({
+                                                            behavior: 'smooth',
+                                                            block: 'start'
+                                                        });
+                                                    }
+                                                }, 300);
+                                            }}
+                                        >
+                                            {section.label}
+                                        </DropdownMenuItem>
+                                    ))}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" className="gap-2" onClick={handlePrint}>
-                                <Printer className="h-4 w-4" /> Print
-                            </Button>
-                            <Button variant="outline" size="sm" className="gap-2" onClick={handleDownloadPDF}>
-                                <Download className="h-4 w-4" /> PDF
-                            </Button>
-                            <Button className="bg-sidebar hover:bg-sidebar/90 text-white gap-2 font-display font-medium shadow-sm" size="sm">
-                                <Send className="h-4 w-4" /> Send Email
-                            </Button>
+
+                        <div className="space-y-4">
+                            {transactionSections.map((section) => (
+                                <Collapsible
+                                    key={section.key}
+                                    open={expandedSections[section.key]}
+                                    onOpenChange={() => toggleSection(section.key)}
+                                >
+                                    <div id={`section-${section.key}`} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                                        <div className="flex items-center justify-between w-full p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                            <CollapsibleTrigger className="flex items-center gap-2 flex-1 text-left">
+                                                {expandedSections[section.key] ? (
+                                                    <ChevronDown className="h-4 w-4 text-sidebar" />
+                                                ) : (
+                                                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                                                )}
+                                                <span className="font-bold font-display text-slate-800">{section.label}</span>
+                                            </CollapsibleTrigger>
+                                            <div className="flex items-center gap-4">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <div
+                                                            className="flex items-center gap-2 text-xs font-bold text-slate-400 cursor-pointer hover:text-sidebar transition-colors font-display uppercase tracking-wider"
+                                                        >
+                                                            <Filter className="h-3.5 w-3.5" />
+                                                            Status: <span className="text-sidebar">{sectionFilters[section.key]}</span>
+                                                            <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                                        </div>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48">
+                                                        {section.statusOptions?.map((status) => (
+                                                            <DropdownMenuItem
+                                                                key={status}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleFilterChange(section.key, status);
+                                                                }}
+                                                                className={sectionFilters[section.key] === status ? 'bg-blue-50 text-blue-600' : ''}
+                                                            >
+                                                                {status}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="text-sidebar font-bold font-display gap-1 hover:bg-sidebar/10"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleNewTransaction(section.key === 'billPayments' ? 'payment' : section.key === 'purchaseOrders' ? 'purchase-order' : section.key === 'vendorCredits' ? 'vendor-credit' : section.key.slice(0, -1));
+                                                    }}
+                                                    data-testid={`button-new-${section.key}`}
+                                                >
+                                                    <Plus className="h-4 w-4" />
+                                                    New
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <CollapsibleContent>
+                                            <div className="border-t border-slate-200">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-sidebar-accent/5">
+                                                        <tr className="border-b border-slate-200">
+                                                            {section.columns.map((col, i) => (
+                                                                <th key={i} className="px-4 py-2.5 text-left text-[11px] font-bold text-sidebar/70 uppercase tracking-wider font-display">
+                                                                    {col}
+                                                                </th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {(getFilteredTransactions(section.key) || []).length === 0 ? (
+                                                            <tr>
+                                                                <td colSpan={section.columns.length} className="px-4 py-8 text-center text-slate-500">
+                                                                    No {section.label.toLowerCase()} found. <button className="text-blue-600" onClick={() => handleNewTransaction(section.key === 'billPayments' ? 'payment' : section.key === 'purchaseOrders' ? 'purchase-order' : section.key === 'vendorCredits' ? 'vendor-credit' : section.key.slice(0, -1))}>Add New</button>
+                                                                </td>
+                                                            </tr>
+                                                        ) : (
+                                                            (getFilteredTransactions(section.key) || []).map((tx) => (
+                                                                <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
+                                                                    <td className="px-4 py-3 text-slate-500 font-display">{formatDate(tx.date)}</td>
+                                                                    <td className="px-4 py-3 text-sidebar font-semibold hover:text-primary transition-colors cursor-pointer font-display">{tx.number}</td>
+                                                                    <td className="px-4 py-3 text-slate-500 font-display">{tx.orderNumber || '-'}</td>
+                                                                    <td className="px-4 py-3 font-semibold text-slate-700 font-display">{formatCurrency(tx.amount)}</td>
+                                                                    <td className="px-4 py-3 font-semibold text-sidebar font-display">{formatCurrency(tx.balance)}</td>
+                                                                    <td className="px-4 py-3">
+                                                                        <Badge variant="outline" className={`font-display font-semibold ${tx.status === 'Draft' ? 'text-slate-400 border-slate-200' : 'text-sidebar bg-sidebar/5 border-sidebar/20'}`}>
+                                                                            {tx.status}
+                                                                        </Badge>
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </CollapsibleContent>
+                                    </div>
+                                </Collapsible>
+                            ))}
                         </div>
                     </div>
+                </TabsContent>
 
-                    <div className="flex-1 overflow-auto scrollbar-hide bg-slate-100 dark:bg-slate-900/90 p-4 md:p-8 flex justify-center">
+                <TabsContent value="mails" className="flex-1 overflow-y-auto scrollbar-hide p-6 mt-0">
+                    <div className="flex items-center justify-between mb-6">
+                        <h4 className="text-lg font-bold font-display text-sidebar">System Mails</h4>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="gap-1.5 font-bold font-display border-slate-200 hover:border-sidebar/30" data-testid="button-link-email">
+                                    <Link2 className="h-4 w-4 text-sidebar" />
+                                    Link Email account
+                                    <ChevronDown className="h-4 w-4 opacity-50" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem>Gmail</DropdownMenuItem>
+                                <DropdownMenuItem>Outlook</DropdownMenuItem>
+                                <DropdownMenuItem>Other</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+                    {mails.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400">
+                            <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                                <Mail className="h-10 w-10 text-slate-200" />
+                            </div>
+                            <p className="text-lg font-bold font-display text-slate-800 mb-1">No emails yet</p>
+                            <p className="text-sm font-display">System emails sent to this vendor will appear here</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {mails.map((mail) => {
+                                const { date, time } = formatDateTime(mail.date);
+                                return (
+                                    <div key={mail.id} className="flex items-start gap-4 p-4 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors group">
+                                        <div className="h-10 w-10 rounded-full bg-sidebar/10 flex items-center justify-center flex-shrink-0 border border-sidebar/20">
+                                            <span className="text-sidebar font-bold font-display">R</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider font-display">To <span className="text-sidebar ml-1">{mail.to}</span></p>
+                                            <p className="font-bold text-sm text-slate-800 mt-1 font-display">{mail.subject}</p>
+                                        </div>
+                                        <div className="text-right text-[11px] font-bold text-slate-400 flex-shrink-0 uppercase font-display">
+                                            <p>{date}</p>
+                                            <p className="text-slate-300">{time}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </TabsContent>
+
+                <TabsContent value="statement" className="flex-1 overflow-y-auto scrollbar-hide p-0 mt-0">
+                    <div className="h-full overflow-auto scrollbar-hide p-4 md:p-8 flex flex-col items-center bg-slate-100 dark:bg-slate-800">
+                        <div className="w-full max-w-[210mm] mb-6 flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <Select value={statementPeriod} onValueChange={setStatementPeriod}>
+                                    <SelectTrigger className="h-9 min-w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700" data-testid="select-period">
+                                        <Calendar className="h-4 w-4 mr-2 text-slate-500" />
+                                        <SelectValue placeholder="Select period" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="this-month">This Month</SelectItem>
+                                        <SelectItem value="last-month">Last Month</SelectItem>
+                                        <SelectItem value="this-quarter">This Quarter</SelectItem>
+                                        <SelectItem value="this-year">This Year</SelectItem>
+                                        <SelectItem value="custom">Custom Range</SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                <Select value={statementFilter} onValueChange={setStatementFilter}>
+                                    <SelectTrigger className="h-9 min-w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600" data-testid="select-filter">
+                                        <span className="mr-1 text-slate-400">Filter By:</span>
+                                        <SelectValue placeholder="All" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Transactions</SelectItem>
+                                        <SelectItem value="outstanding">Outstanding</SelectItem>
+                                        <SelectItem value="paid">Paid</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="icon" className="h-9 w-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 hover:text-slate-900" onClick={handlePrint} title="Print" data-testid="button-print">
+                                    <Printer className="h-4 w-4" />
+                                </Button>
+                                <Button variant="outline" size="icon" className="h-9 w-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 hover:text-slate-900" onClick={handleDownloadPDF} disabled={isDownloading} title="Download PDF" data-testid="button-download-pdf">
+                                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                </Button>
+                                <Button variant="outline" size="icon" className="h-9 w-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 hover:text-slate-900" onClick={handleDownloadExcel} title="Download Excel" data-testid="button-download-excel">
+                                    <FileText className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    className="h-9 px-4 text-xs font-bold font-display bg-sidebar hover:bg-sidebar/90 text-white shadow-sm hover:shadow transition-all gap-2"
+                                    size="sm"
+                                    data-testid="button-send-email"
+                                >
+                                    <Mail className="h-4 w-4" />
+                                    Send Email
+                                </Button>
+                            </div>
+                        </div>
+
                         <div
                             id="vendor-statement"
-                            className="bg-white dark:bg-white text-slate-900 shadow-xl w-full max-w-[210mm] min-h-[296mm] h-fit flex flex-col"
+                            className="bg-white dark:bg-white text-slate-900 shadow-xl px-8 md:px-10 py-10 w-full max-w-[210mm] min-h-[296mm] h-fit"
                             style={{ color: '#000000' }}
                         >
-                            <div className="px-8 md:px-10 py-10 flex-1 flex flex-col">
-                                <div className="flex justify-between items-start mb-12 border-b-2 border-slate-900 pb-10">
-                                    <div className="flex flex-col gap-4">
-                                        {branding?.logo?.url && (
-                                            <img
-                                                src={branding.logo.url}
-                                                alt="Company Logo"
-                                                className="h-16 w-auto object-contain"
-                                            />
-                                        )}
-                                        <div>
-                                            <h2 className="text-2xl font-bold uppercase text-slate-900 tracking-tight leading-none">{currentOrganization?.name}</h2>
-                                            <div className="text-sm text-slate-600 mt-3 space-y-1">
-                                                {currentOrganization?.street1 && <p>{currentOrganization.street1}</p>}
-                                                {currentOrganization?.street2 && <p>{currentOrganization.street2}</p>}
-                                                <p>
-                                                    {[currentOrganization?.city, currentOrganization?.state, currentOrganization?.postalCode].filter(Boolean).join(', ')}
-                                                </p>
-                                                {currentOrganization?.gstin && (
-                                                    <p className="font-bold text-slate-900 pt-1 text-[11px] uppercase tracking-wider mt-2 border-t border-slate-100 w-fit">GSTIN: {currentOrganization.gstin}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <h1 className="text-4xl font-light text-slate-400 uppercase tracking-widest mb-4">Statement</h1>
-                                        <div className="space-y-1 text-sm text-slate-600">
-                                            <p><span className="text-slate-400 uppercase font-medium">Date:</span> {formatDate(new Date().toISOString())}</p>
-                                            <p><span className="text-slate-400 uppercase font-medium">Period:</span> {statementPeriod.start} - {statementPeriod.end}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-12 mb-12">
-                                    <div>
-                                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">To:</h3>
-                                        <p className="font-bold text-lg text-slate-900 mb-1">{vendor.name}</p>
-                                        <p className="text-slate-600 leading-relaxed font-medium text-sm">
-                                            {vendor.billingAddress?.street1}<br />
-                                            {vendor.billingAddress?.city}, {vendor.billingAddress?.state}<br />
-                                            {vendor.billingAddress?.pinCode}
+                            <div className="flex justify-between items-start mb-12">
+                                <div className="space-y-4">
+                                    {branding?.logo?.url && (
+                                        <img src={branding.logo.url} alt="Logo" className="h-16 object-contain" />
+                                    )}
+                                    <div className="space-y-1">
+                                        <h2 className="text-2xl font-bold uppercase">{currentOrganization?.name}</h2>
+                                        <p className="text-sm text-slate-600">{currentOrganization?.street1}</p>
+                                        {currentOrganization?.street2 && <p className="text-sm text-slate-600">{currentOrganization.street2}</p>}
+                                        <p className="text-sm text-slate-600">
+                                            {[currentOrganization?.city, currentOrganization?.state, currentOrganization?.postalCode].filter(Boolean).join(', ')}
                                         </p>
+                                        {currentOrganization?.gstin && <p className="text-sm font-semibold pt-1">GSTIN: {currentOrganization.gstin}</p>}
                                     </div>
-                                    <div>
-                                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
-                                            <h3 className="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">Account Summary</h3>
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-slate-600">Opening Balance</span>
-                                                    <span className="font-semibold text-slate-900">{formatCurrency(vendor.openingBalance || 0)}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm text-sidebar font-bold border-t border-slate-200 pt-2 mt-2">
-                                                    <span className="uppercase text-[11px] tracking-tight">Current Balance</span>
-                                                    <span className="text-lg">{formatCurrency(vendor.payables || 0)}</span>
-                                                </div>
-                                            </div>
+                                </div>
+                                <div className="text-right">
+                                    <h1 className="text-4xl font-light text-slate-400 uppercase tracking-widest mb-4">Statement</h1>
+                                    <div className="space-y-1 text-sm">
+                                        <p><span className="text-slate-400 uppercase">Date:</span> {formatDate(new Date().toISOString())}</p>
+                                        <p><span className="text-slate-400 uppercase">Period:</span> {(() => {
+                                            const { start, end } = getStatementDateRange(statementPeriod);
+                                            return `${formatDate(start.toISOString())} TO ${formatDate(end.toISOString())}`;
+                                        })()}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-12 mb-12">
+                                <div>
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">To</h3>
+                                    <div className="space-y-1">
+                                        <p className="font-bold text-blue-600 text-lg leading-none mb-1">{fullVendor.displayName || fullVendor.name}</p>
+                                        {fullVendor.companyName && <p className="font-bold text-sm text-slate-800">{fullVendor.companyName}</p>}
+                                        {formatVendorAddress(fullVendor.billingAddress).map((part, i) => (
+                                            <p key={i} className="text-sm text-slate-600">{part}</p>
+                                        ))}
+                                        {fullVendor.gstin && <p className="text-sm font-semibold pt-1">GSTIN: {fullVendor.gstin}</p>}
+                                    </div>
+                                </div>
+                                <div className="bg-slate-50 p-6 rounded-sm border border-slate-100">
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Account Summary</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Opening Balance</span>
+                                            <span className="font-medium">{formatCurrency(openingBalance)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Billed Amount</span>
+                                            <span className="font-medium">{formatCurrency(billedAmount)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Amount Paid</span>
+                                            <span className="font-medium text-green-600">{formatCurrency(amountPaid)}</span>
+                                        </div>
+                                        <div className="pt-3 border-t border-slate-200 flex justify-between">
+                                            <span className="font-bold uppercase text-xs">Balance Due</span>
+                                            <span className="font-bold text-lg">{formatCurrency(balanceDue)}</span>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <table className="w-full text-sm mb-8">
+                            <div className="border border-slate-200 rounded-xl overflow-hidden mb-12">
+                                <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                                    <colgroup>
+                                        <col style={{ width: '15%' }} />
+                                        <col style={{ width: '40%' }} />
+                                        <col style={{ width: '15%' }} />
+                                        <col style={{ width: '15%' }} />
+                                        <col style={{ width: '15%' }} />
+                                    </colgroup>
                                     <thead>
-                                        <tr className="border-b-2 border-slate-900 text-slate-900">
-                                            <th className="py-3 text-left font-bold uppercase tracking-wider text-[11px]">Date</th>
-                                            <th className="py-3 text-left font-bold uppercase tracking-wider text-[11px]">Description</th>
-                                            <th className="py-3 text-right font-bold uppercase tracking-wider text-[11px]">Credits</th>
-                                            <th className="py-3 text-right font-bold uppercase tracking-wider text-[11px]">Debits</th>
-                                            <th className="py-3 text-right font-bold uppercase tracking-wider text-[11px]">Balance</th>
+                                        <tr className="bg-slate-900 text-white">
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider">Date</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider">Transactions</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider">Amount</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider">Payments</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider">Balance</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                                        <tr className="bg-slate-50/50">
-                                            <td className="py-4 italic font-medium">01/01/2026</td>
-                                            <td className="py-4 font-bold text-slate-600">Opening Balance</td>
-                                            <td className="py-4 text-right font-medium">-</td>
-                                            <td className="py-4 text-right font-medium">-</td>
-                                            <td className="py-4 text-right font-bold text-slate-900">{formatCurrency(vendor.openingBalance || 0)}</td>
-                                        </tr>
-                                        {combinedTransactions.map((t) => (
-                                            <tr key={`${t.tType}-${t.id}`}>
-                                                <td className="py-4 font-medium text-slate-600">{formatDate(t.date)}</td>
-                                                <td className="py-4">
-                                                    <p className="font-bold text-slate-900">{t.tType}: {t.number}</p>
-                                                    {t.orderNumber && (
-                                                        <p className="text-[11px] text-slate-500 font-medium">Ref: {t.orderNumber}</p>
-                                                    )}
-                                                </td>
-                                                <td className="py-4 text-right font-bold text-slate-900">
-                                                    {t.isCredit ? formatCurrency(t.displayAmount) : '-'}
-                                                </td>
-                                                <td className="py-4 text-right font-bold text-slate-900">
-                                                    {!t.isCredit ? formatCurrency(t.displayAmount) : '-'}
-                                                </td>
-                                                <td className="py-4 text-right font-bold text-slate-900">{formatCurrency(t.runningBalance)}</td>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {statementTransactions.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} className="px-4 py-12 text-center text-slate-400 italic">No transactions in this period</td>
                                             </tr>
-                                        ))}
+                                        ) : (
+                                            statementTransactions
+                                                .filter(tx => {
+                                                    if (statementFilter === 'all') return true;
+                                                    if (statementFilter === 'outstanding') return tx.type === 'Bill' && (tx.balance || 0) > 0;
+                                                    if (statementFilter === 'paid') return tx.type === 'Payment' || (tx.type === 'Bill' && (tx.balance || 0) === 0);
+                                                    return true;
+                                                })
+                                                .map((tx) => (
+                                                    <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="px-4 py-4 text-xs">{formatDate(tx.date)}</td>
+                                                        <td className="px-4 py-4">
+                                                            <p className="text-xs font-bold">{tx.type} {tx.number}</p>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-xs text-right">
+                                                            {tx.type === 'Bill' ? formatCurrency(tx.amount) : '\u2014'}
+                                                        </td>
+                                                        <td className="px-4 py-4 text-xs text-right text-green-600">
+                                                            {tx.type === 'Payment' ? formatCurrency(tx.amount) : '\u2014'}
+                                                        </td>
+                                                        <td className="px-4 py-4 text-xs text-right font-bold">
+                                                            {formatCurrency((tx as any).runningBalance || 0)}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                        )}
                                     </tbody>
+                                    <tfoot>
+                                        <tr className="bg-slate-50 border-t-2 border-slate-900">
+                                            <td colSpan={4} className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider">Closing Balance</td>
+                                            <td className="px-4 py-3 text-right text-sm font-black">{formatCurrency(balanceDue)}</td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
+                            </div>
 
-                                <div className="border-t-2 border-slate-900 pt-6 mt-auto flex justify-end">
-                                    <div className="w-64 space-y-3">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-500 font-bold uppercase tracking-tight text-[11px]">Total Purchases</span>
-                                            <span className="font-bold text-slate-900">{formatCurrency(transactions.bills.reduce((acc, b) => acc + b.amount, 0))}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-500 font-bold uppercase tracking-tight text-[11px]">Total Payments</span>
-                                            <span className="font-bold text-slate-900">{formatCurrency(transactions.billPayments.reduce((acc, p) => acc + p.amount, 0))}</span>
-                                        </div>
-                                        <div className="flex justify-between pt-4 border-t border-slate-200">
-                                            <span className="text-lg font-black uppercase tracking-tighter text-sidebar">Balance Due</span>
-                                            <span className="text-2xl font-black text-sidebar">{formatCurrency(vendor.payables || 0)}</span>
-                                        </div>
+                            <div className="mt-auto pt-12 border-t border-slate-100">
+                                <div className="flex justify-between items-end">
+                                    <div className="text-[10px] text-slate-400 space-y-1 uppercase tracking-widest font-medium">
+                                        <p>This is a computer generated statement.</p>
+                                        <p>Thank you for your business</p>
                                     </div>
-                                </div>
-                                <div className="mt-12 text-[10px] text-slate-400 text-center uppercase tracking-[0.2em] font-bold">
-                                    This is a computer generated document.
+                                    {branding?.signature?.url && (
+                                        <div className="text-right space-y-2">
+                                            <img src={branding.signature.url} alt="Signature" className="h-12 ml-auto object-contain" />
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 border-t border-slate-200 pt-2 px-4">Authorized Signature</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
                 </TabsContent>
-            </Tabs >
-        </div >
+            </Tabs>
+        </div>
     );
 }
+
 
 export default function VendorsPage() {
     const [, setLocation] = useLocation();
