@@ -115,6 +115,7 @@ interface VendorBill {
   status: string;
   rejectionReason?: string;
   activityLogs?: ActivityLog[];
+  paymentReceiptStatus?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -467,7 +468,7 @@ function VendorBillDetailPanel({
 }) {
   const [showPdfView, setShowPdfView] = useState(true);
   const [isSendingReceipt, setIsSendingReceipt] = useState(false);
-  const [receiptStatus, setReceiptStatus] = useState(bill.paymentReceiptStatus || "Not Verified");
+  const [receiptStatus, setReceiptStatus] = useState<string>(bill.paymentReceiptStatus || "Not Verified");
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
