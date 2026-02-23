@@ -10188,11 +10188,75 @@ export async function registerRoutes(
         user: "Vendor"
       });
 
+      // Reversal Logic: If status is changed from Submitted/Approved to Rejected, revert stock
+      if (updatedBill.status === "Rejected" && (bill.status === "Submitted" || bill.status === "Pending Approval" || bill.status === "Approved")) {
+        const vendorItems = readVendorItems();
+        for (const item of bill.items) {
+          const vendorItemIndex = vendorItems.findIndex((vi: any) => (vi.id === item.itemId || vi.name === item.itemName) && String(vi.vendorId) === String(bill.vendorId));
+          if (vendorItemIndex !== -1) {
+            vendorItems[vendorItemIndex].availableQuantity = Number(vendorItems[vendorItemIndex].availableQuantity) + Number(item.quantity);
+          }
+        }
+        writeVendorItems(vendorItems);
+      }
+
       data.bills[billIndex] = updatedBill;
       writeBillsData(data);
       res.json({ success: true, data: updatedBill });
     } catch (error) {
+      console.error("Error updating bill:", error);
       res.status(500).json({ success: false, message: "Failed to update bill" });
+    }
+  });
+
+  // Admin approval/rejection route
+  app.post("/api/admin/bills/:id/status", authenticate, requireRole("admin"), async (req: Request, res: Response) => {
+    try {
+      const { status, reason } = req.body;
+      if (!["Approved", "Rejected"].includes(status)) {
+        return res.status(400).json({ success: false, message: "Invalid status" });
+      }
+      if (status === "Rejected" && !reason) {
+        return res.status(400).json({ success: false, message: "Reason is required for rejection" });
+      }
+
+      const data = readBillsData();
+      const billIndex = data.bills.findIndex((b: any) => b.id === req.params.id);
+      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
+
+      const bill = data.bills[billIndex];
+      const oldStatus = bill.status;
+      
+      bill.status = status;
+      bill.rejectionReason = reason || null;
+      bill.updatedAt = new Date().toISOString();
+
+      if (!bill.activityLogs) bill.activityLogs = [];
+      bill.activityLogs.push({
+        id: String(Date.now()),
+        timestamp: new Date().toISOString(),
+        action: status.toLowerCase(),
+        description: `Bill ${status.toLowerCase()} by admin${reason ? ": " + reason : ""}`,
+        user: "Admin"
+      });
+
+      // Stock Reversal if Rejected
+      if (status === "Rejected" && (oldStatus === "Submitted" || oldStatus === "Pending Approval")) {
+        const vendorItems = readVendorItems();
+        for (const item of bill.items) {
+          const vendorItemIndex = vendorItems.findIndex((vi: any) => (vi.id === item.itemId || vi.name === item.itemName) && String(vi.vendorId) === String(bill.vendorId));
+          if (vendorItemIndex !== -1) {
+            vendorItems[vendorItemIndex].availableQuantity = Number(vendorItems[vendorItemIndex].availableQuantity) + Number(item.quantity);
+          }
+        }
+        writeVendorItems(vendorItems);
+      }
+
+      data.bills[billIndex] = bill;
+      writeBillsData(data);
+      res.json({ success: true, data: bill });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to update bill status" });
     }
   });
 
