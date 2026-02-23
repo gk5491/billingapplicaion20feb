@@ -557,7 +557,7 @@ export default function VendorBillCreate() {
     setAttachments(prev => prev.filter(a => a.id !== id));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (status: "DRAFT" | "Submitted" = "DRAFT") => {
     if (!formData.selectedPurchaseOrderId) {
       toast({ title: "Please select a Purchase Order", variant: "destructive" });
       return;
@@ -570,7 +570,7 @@ export default function VendorBillCreate() {
       toast({ title: "Please add at least one item", variant: "destructive" });
       return;
     }
-    if (hasQuantityErrors()) {
+    if (status === "Submitted" && hasQuantityErrors()) {
       toast({ title: "Bill quantity exceeds available stock for one or more items", variant: "destructive" });
       return;
     }
@@ -587,7 +587,7 @@ export default function VendorBillCreate() {
         tdsAmount: calculateTDS(),
         total: calculateTotal(),
         balanceDue: calculateBalanceDue(),
-        status: "DRAFT",
+        status,
       };
 
       const url = billIdFromUrl
@@ -602,13 +602,16 @@ export default function VendorBillCreate() {
       });
 
       if (response.ok) {
-        toast({ title: billIdFromUrl ? "Bill updated successfully" : "Bill saved as draft" });
+        toast({ 
+          title: status === "Submitted" ? "Bill submitted successfully" : (billIdFromUrl ? "Bill updated successfully" : "Bill saved as draft") 
+        });
         setLocation("/vendor/bills");
       } else {
-        throw new Error('Failed to save bill');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save bill');
       }
-    } catch (error) {
-      toast({ title: "Failed to save bill", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: error.message || "Failed to save bill", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -1162,20 +1165,29 @@ export default function VendorBillCreate() {
 
           <div className="flex items-center gap-3 mt-6 p-4 bg-white rounded-lg shadow-sm border border-slate-200">
             <Button
-              className="bg-sidebar hover:bg-sidebar/90 font-display"
-              onClick={handleSubmit}
-              disabled={loading}
-              data-testid="button-save-bill"
-            >
-              {loading ? "Saving..." : billIdFromUrl ? "Update Bill" : "Save Bill"}
-            </Button>
-            <Button
               variant="outline"
               onClick={() => setLocation("/vendor/bills")}
               data-testid="button-cancel"
               className="font-display"
             >
               Cancel
+            </Button>
+            <Button
+              variant="outline"
+              className="border-slate-300 text-slate-700 hover:bg-slate-50 font-display"
+              onClick={() => handleSubmit("DRAFT")}
+              disabled={loading}
+              data-testid="button-save-draft"
+            >
+              {loading ? "Saving..." : "Save as Draft"}
+            </Button>
+            <Button
+              className="bg-sidebar hover:bg-sidebar/90 font-display text-white"
+              onClick={() => handleSubmit("Submitted")}
+              disabled={loading}
+              data-testid="button-submit"
+            >
+              {loading ? "Submitting..." : "Save and Submit"}
             </Button>
           </div>
         </div>
