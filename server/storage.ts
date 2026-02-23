@@ -85,6 +85,35 @@ export class MemStorage implements IStorage {
       }
     });
 
+    const vendorsFile = path.join(DATA_DIR, "vendors.json");
+    if (fs.existsSync(vendorsFile)) {
+      try {
+        const vendorsData = JSON.parse(fs.readFileSync(vendorsFile, "utf-8"));
+        const vendors = vendorsData.vendors || [];
+        vendors.forEach((vendor: any) => {
+          if (vendor.email && vendor.isPortalEnabled && vendor.tempPassword) {
+            const existing = users.find(u => u.username === vendor.email);
+            if (!existing) {
+              users.push({
+                id: randomUUID(),
+                username: vendor.email,
+                password: vendor.tempPassword,
+                role: "vendor",
+                name: vendor.displayName || vendor.companyName || `Vendor ${vendor.id}`,
+              });
+              hasChanges = true;
+            } else if (existing.role !== "vendor") {
+              existing.role = "vendor";
+              existing.password = vendor.tempPassword;
+              hasChanges = true;
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Error syncing vendor users:", e);
+      }
+    }
+
     if (hasChanges) {
       fs.writeFileSync(this.USERS_FILE, JSON.stringify({ users }, null, 2));
     }

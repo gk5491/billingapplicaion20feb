@@ -143,7 +143,80 @@
       "unusedCredits": 0,
       "createdAt": "2026-02-10T07:04:48.777Z",
       "updatedAt": "2026-02-10T07:04:48.777Z"
+    },
+    {
+      "id": "4",
+      "organizationId": "1",
+      "salutation": "Mrs.",
+      "firstName": "priyanka",
+      "lastName": "k",
+      "companyName": "Cyb",
+      "displayName": "priyanka k",
+      "email": "priyanka.k@cybaemtech.com",
+      "workPhone": "9876542367",
+      "mobile": "9876542367",
+      "gstTreatment": "Registered Business - Composition",
+      "sourceOfSupply": "[MH] - Maharashtra",
+      "pan": "KCWP2342H",
+      "expenseAccount": "Input Tax Credits",
+      "msmeRegistered": false,
+      "msmeRegistrationType": "",
+      "msmeRegistrationNumber": "",
+      "currency": "INR",
+      "openingBalance": 0,
+      "paymentTerms": "Net 30",
+      "tds": "interest-other-10",
+      "billingAddress": {
+        "attention": "Sadan Nivas",
+        "countryRegion": "India",
+        "street1": "Kalwadi Phata",
+        "street2": "PCMC",
+        "city": "Pune",
+        "state": "[MH] - Maharashtra",
+        "pinCode": "41106",
+        "phone": "9876542367",
+        "faxNumber": "9876542367"
+      },
+      "shippingAddress": {
+        "attention": "Sadan Nivas",
+        "countryRegion": "India",
+        "street1": "Kalwadi Phata",
+        "street2": "PCMC",
+        "city": "Pune",
+        "state": "[MH] - Maharashtra",
+        "pinCode": "41106",
+        "phone": "9876542367",
+        "faxNumber": "9876542367"
+      },
+      "bankDetails": {
+        "accountHolderName": "priyanka ",
+        "bankName": "SBI",
+        "accountNumber": "39738956299",
+        "ifscCode": "DY2680219",
+        "swiftCode": "HFGE3628",
+        "branchName": "PCMC"
+      },
+      "isCrm": true,
+      "isPortalEnabled": true,
+      "remarks": "",
+      "tempPassword": "password",
+      "contactPersons": [
+        {
+          "id": "1771830575192",
+          "salutation": "Mr.",
+          "firstName": "Sujay",
+          "lastName": "palande",
+          "email": "sujay@gmail.com",
+          "workPhone": "3476542367",
+          "mobile": "5436542367"
+        }
+      ],
+      "status": "active",
+      "balanceToPay": 0,
+      "unusedCredits": 0,
+      "createdAt": "2026-02-23T07:08:46.423Z",
+      "updatedAt": "2026-02-23T07:08:46.423Z"
     }
   ],
-  "nextVendorId": 4
+  "nextVendorId": 5
 }
