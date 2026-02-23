@@ -53,22 +53,16 @@ const formatAddress = (address: any) => {
 };
 
 export const InvoicePDFView = ({ invoice, branding, organization }: { invoice: any, branding: any, organization: any }) => {
-    // Calculate verified payments and balance due
+    const totalAmount = Number(invoice.total || invoice.amount || 0);
+
     const verifiedPayments = (invoice.payments || []).filter((p: any) => 
-        ['Verified', 'Received', 'PAID', 'PAID_SUCCESS', 'Verified Payment', 'PAID_SUCCESSFUL', 'Record Payment', 'Partially Paid'].includes(p.status.split(' (')[0]) || 
+        ['Verified', 'Received', 'PAID', 'PAID_SUCCESS', 'Verified Payment', 'PAID_SUCCESSFUL', 'Record Payment', 'Partially Paid'].includes(p.status?.split(' (')[0]) || 
         ['Verified', 'Received', 'PAID', 'PAID_SUCCESS', 'Verified Payment', 'PAID_SUCCESSFUL'].includes(p.status)
     );
-    const amountPaid = verifiedPayments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
-    const totalAmount = Number(invoice.total || invoice.amount || 0);
-    const balanceDue = Math.max(0, totalAmount - amountPaid);
+    const calculatedPaid = verifiedPayments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
 
-    console.log('InvoicePDFView debug:', { 
-        invoiceNumber: invoice.invoiceNumber,
-        itemsCount: invoice.items?.length,
-        totalAmount,
-        amountPaid,
-        balanceDue 
-    });
+    const amountPaid = invoice.amountPaid != null && invoice.amountPaid > 0 ? Number(invoice.amountPaid) : calculatedPaid;
+    const balanceDue = invoice.balanceDue != null ? Number(invoice.balanceDue) : Math.max(0, totalAmount - amountPaid);
 
     return (
         <div id="invoice-pdf-inner" className="bg-white" style={{

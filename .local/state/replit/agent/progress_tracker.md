@@ -14,3 +14,4 @@
 [x] 14. Enhanced payment receipt to show full invoice details with item breakdown, invoice number, total amount, and balance due
 [x] 15. Fixed invoice details not showing in admin and customer receipt views by enriching all payment API endpoints with full invoice data
 [x] 16. Redesigned customer Sales Orders page to match the Quotes page UI - table layout with slide-in detail panel
+[x] 17. Fixed balance due not showing correctly on invoices - now uses stored balanceDue/amountPaid values instead of recalculating from empty payments array

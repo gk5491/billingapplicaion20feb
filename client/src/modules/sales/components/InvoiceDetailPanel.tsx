@@ -20,6 +20,7 @@ interface Invoice {
     dueDate: string;
     amount: number;
     balanceDue: number;
+    amountPaid?: number;
     status: string;
     items?: any[];
     payments?: any[];
@@ -150,13 +151,13 @@ export default function InvoiceDetailPanel({ invoice, onClose, onRefresh, isAdmi
         }
     };
 
-    // Calculate verified balance
+    const totalAmount = Number(invoice.total || invoice.amount || 0);
     const verifiedPayments = (invoice.payments || []).filter((p: any) => 
         ['Verified', 'Received', 'PAID', 'PAID_SUCCESS', 'Verified Payment', 'PAID_SUCCESSFUL'].includes(p.status)
     );
-    const amountPaid = verifiedPayments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
-    const totalAmount = Number(invoice.total || invoice.amount || 0);
-    const balanceDue = Math.max(0, totalAmount - amountPaid);
+    const calculatedPaid = verifiedPayments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
+    const amountPaid = invoice.amountPaid != null && invoice.amountPaid > 0 ? Number(invoice.amountPaid) : calculatedPaid;
+    const balanceDue = invoice.balanceDue != null ? Number(invoice.balanceDue) : Math.max(0, totalAmount - amountPaid);
 
     return (
         <div className="flex flex-col h-full overflow-hidden bg-white border-l border-slate-200 shadow-2xl animate-in slide-in-from-right duration-300">
