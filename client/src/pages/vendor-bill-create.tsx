@@ -650,31 +650,43 @@ export default function VendorBillCreate() {
           </div>
 
           {organization && (
-            <Card className="p-4 mb-4">
+            <Card className="p-4 mb-4 bg-slate-50 border-slate-200">
               <div className="flex items-start gap-3">
                 <Building2 className="h-5 w-5 text-slate-500 mt-0.5" />
                 <div className="flex-1">
-                  <h3 className="font-medium text-slate-900" data-testid="text-org-name">
-                    {organization.companyName || organization.name}
+                  <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2" data-testid="text-org-label">
+                    Organization Name (Admin)
                   </h3>
-                  {organization.gstin && (
-                    <p className="text-sm text-slate-600" data-testid="text-org-gstin">GSTIN: {organization.gstin}</p>
-                  )}
+                  <p className="font-bold text-lg text-slate-900 mb-1" data-testid="text-org-name">
+                    {organization.companyName || organization.name}
+                  </p>
                   {organization.address && (
-                    <p className="text-sm text-slate-500" data-testid="text-org-address">
-                      {[
-                        organization.address.street1,
-                        organization.address.street2,
-                        organization.address.city,
-                        organization.address.state,
-                        organization.address.pinCode,
-                      ].filter(Boolean).join(", ")}
-                    </p>
-                  )}
-                  {(organization.email || organization.phone) && (
-                    <p className="text-sm text-slate-500">
-                      {[organization.email, organization.phone].filter(Boolean).join(" | ")}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-slate-600 flex items-start gap-2" data-testid="text-org-address">
+                        <span className="font-medium shrink-0">Address:</span>
+                        <span>
+                          {[
+                            organization.address.street1,
+                            organization.address.street2,
+                            organization.address.city,
+                            organization.address.state,
+                            organization.address.pinCode,
+                          ].filter(Boolean).join(", ")}
+                        </span>
+                      </p>
+                      {organization.gstin && (
+                        <p className="text-sm text-slate-600 flex items-center gap-2" data-testid="text-org-gstin">
+                          <span className="font-medium shrink-0">GST Number:</span>
+                          <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-xs">{organization.gstin}</span>
+                        </p>
+                      )}
+                      {(organization.email || organization.phone) && (
+                        <p className="text-sm text-slate-600 flex items-center gap-2" data-testid="text-org-contact">
+                          <span className="font-medium shrink-0">Contact Details:</span>
+                          <span>{[organization.email, organization.phone].filter(Boolean).join(" | ")}</span>
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

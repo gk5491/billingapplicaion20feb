@@ -9646,11 +9646,29 @@ export async function registerRoutes(
         vendorId: vendor.id,
         vendorName: vendor.displayName || vendor.companyName,
         ...req.body,
-        status: "Pending Approval",
+        status: req.body.status === "Submitted" ? "Submitted" : "Pending Approval",
         createdBy: "vendor",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+
+      // Stock Logic: If status is Submitted, reduce vendor item quantity
+      if (newBill.status === "Submitted") {
+        const vendorItems = readVendorItems();
+        for (const item of newBill.items) {
+          const vendorItemIndex = vendorItems.findIndex((vi: any) => (vi.id === item.itemId || vi.name === item.itemName) && String(vi.vendorId) === String(vendor.id));
+          if (vendorItemIndex !== -1) {
+            const vendorItem = vendorItems[vendorItemIndex];
+            if (Number(vendorItem.availableQuantity) < Number(item.quantity)) {
+              return res.status(400).json({ success: false, message: `Insufficient stock for item: ${item.itemName}. Available: ${vendorItem.availableQuantity}, Requested: ${item.quantity}` });
+            }
+            vendorItem.availableQuantity = Number(vendorItem.availableQuantity) - Number(item.quantity);
+            vendorItems[vendorItemIndex] = vendorItem;
+          }
+        }
+        writeVendorItems(vendorItems);
+      }
+
       billsData.bills.push(newBill);
       writeBillsData(billsData);
 
