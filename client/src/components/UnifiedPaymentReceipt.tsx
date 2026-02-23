@@ -241,7 +241,7 @@ export function UnifiedPaymentReceipt({
                     </div>
                 )}
 
-                {/* Overpayment Stats */}
+                {/* Balance Amount */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px' }}>
                     <div style={{
                         width: '320px',
@@ -254,7 +254,9 @@ export function UnifiedPaymentReceipt({
                         alignItems: 'center'
                     }}>
                         <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Balance Amount</span>
-                        <span style={{ fontSize: '18px', color: '#0f172a', fontWeight: '900' }}>{formatCurrency(payment.unusedAmount || 0)}</span>
+                        <span style={{ fontSize: '18px', color: '#0f172a', fontWeight: '900' }}>{formatCurrency(
+                            payment.invoices?.reduce((sum: number, inv: any) => sum + (inv.balanceDue ?? inv.amountDue ?? 0), 0) || 0
+                        )}</span>
                     </div>
                 </div>
 
