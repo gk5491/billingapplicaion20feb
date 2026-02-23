@@ -1,0 +1,100 @@
+2️⃣ VENDOR → CREATE / EDIT BILL
+When Vendor creates or edits a bill:
+✅ UI must be EXACTLY SAME as Admin "Create New Bill" form
+(Same layout, same item table, same design)
+BUT with following changes:
+🔹 Change 1: Replace Vendor Name Field
+Instead of:
+Vendor Name
+Show:
+Organization Name (Auto-filled with Admin company details)
+Also show:
+• Company Address
+• GST Number
+• Contact Details
+Vendor should NOT select vendor name (because he is logged in vendor).
+🔹 Change 2: Add Purchase Order Dropdown
+Add new required field:
+Purchase Order *
+Type: Dropdown
+Only show:
+• Accepted Purchase Orders
+• Not yet converted to Bill
+
+🔹 Change 3: STOCK LOGIC (IMPORTANT)
+When Vendor creates Bill:
+In Item Details Section:
+Instead of Admin Items,
+Load:
+VendorItems where vendorId = loggedInVendor
+When vendor selects item in bill:
+Auto-fetch:
+• Rate
+• GST
+• Tax %
+• Available Quantity
+Vendor can:
+✔ Increase/Decrease bill quantity
+BUT:
+Bill quantity cannot exceed available quantity.
+If exceeds:
+Show validation error.
+
+🔹 Change 4: AFTER BILL SUBMITTED
+When Bill Status = Submitted:
+Reduce Vendor Item Available Quantity automatically.
+Example:
+Vendor has 20 units
+Bill created for 5
+After submission → Stock becomes 15
+If bill rejected:
+Stock should revert back.
+
+3️⃣ SEND BILL TO ADMIN
+In Bill Details page (Vendor side):
+At top near PDF View button:
+Add:
+👉 Send to Customer (Admin)
+When Vendor clicks:
+• Bill Status → Submitted
+• Admin receives notification
+4️⃣ ADMIN SIDE RULE
+When Admin receives bill:
+Admin:
+✔ Can View
+✔ Can Approve
+✔ Can Reject (with reason)
+Admin:
+❌ Cannot Edit Bill Items
+❌ Cannot Modify Quantity
+❌ Cannot Change Amount
+If Admin Rejects:
+• Status → Rejected
+• Reason mandatory
+• Vendor can edit and Resend
+If Admin Approves:
+• Status → Approved
+• Admin can record payment
+• After Admin makes payment:
+
+6️⃣ VENDOR PAYMENT RECEIPT SECTION
+Create new section:
+Vendor → Payment Receipt
+Inside:
+Show dropdown:
+Payment Status:
+• Not Verified
+• Verified
+• PAID
+Add Button:
+👉 Send Receipt
+🔹 Receipt Flow
+1. Vendor generates receipt first.
+2. Vendor can preview receipt.
+3. Vendor selects:
+o Paid
+4. Vendor clicks Send Receipt
+5. Admin receives receipt.
+Once sent:
+• Admin cannot edit receipt
+• Admin can only view
