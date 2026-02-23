@@ -1,6 +1,85 @@
 {
   "bills": [
     {
+      "id": "1771831138043",
+      "organizationId": "1",
+      "billNumber": "17",
+      "purchaseOrderId": "1771831091486",
+      "orderNumber": "PO-2025-0009",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "vendorAddress": {
+        "street1": "Kalwadi Phata",
+        "street2": "PCMC",
+        "city": "Pune",
+        "state": "[MH] - Maharashtra",
+        "pinCode": "41106",
+        "countryRegion": "India"
+      },
+      "billDate": "2026-02-23",
+      "dueDate": "2026-02-23",
+      "paymentTerms": "Due on Receipt",
+      "reverseCharge": false,
+      "subject": "Bill for PO# PO-2025-0009",
+      "items": [
+        {
+          "id": "1",
+          "itemId": "1770351067854",
+          "itemName": "Laptop",
+          "description": "",
+          "account": "input_tax_credits",
+          "quantity": 11,
+          "rate": 15000,
+          "tax": "none",
+          "taxAmount": 0,
+          "amount": 165000
+        }
+      ],
+      "subTotal": 165000,
+      "discountType": "percent",
+      "discountValue": 0,
+      "discountAmount": 0,
+      "taxType": "TDS",
+      "taxCategory": "none",
+      "taxAmount": 0,
+      "adjustment": 0,
+      "adjustmentDescription": "",
+      "total": 165000,
+      "amountPaid": 0,
+      "balanceDue": 165000,
+      "notes": "",
+      "attachments": [],
+      "status": "OPEN",
+      "pdfTemplate": "Standard Template",
+      "createdAt": "2026-02-23T07:18:58.042Z",
+      "updatedAt": "2026-02-23T07:19:04.437Z",
+      "createdBy": "Admin User",
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-23T07:18:58.042Z",
+          "action": "created",
+          "description": "Bill created from Purchase Order PO# PO-2025-0009",
+          "user": "Admin User"
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-02-23T07:19:04.437Z",
+          "action": "updated",
+          "description": "Bill updated. New total: ₹165000.00, Balance due: ₹165000.00",
+          "user": "Admin User"
+        }
+      ],
+      "tcsType": "TCS",
+      "tcsCategory": "none",
+      "tcsValue": 0,
+      "tdsValue": 0,
+      "tcsAmount": 0,
+      "tdsAmount": 0,
+      "paymentsRecorded": [],
+      "creditsApplied": []
+    },
+    {
       "id": "1770791906254",
       "organizationId": "1",
       "billNumber": "16",
@@ -640,7 +719,7 @@
       ]
     }
   ],
-  "nextBillNumber": 17,
+  "nextBillNumber": 18,
   "accounts": [
     {
       "id": "1",

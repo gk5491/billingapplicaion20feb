@@ -31,7 +31,10 @@ import {
   Upload,
   RefreshCw,
   Lightbulb,
-  ArrowUpDown
+  ArrowUpDown,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from "lucide-react";
 import { transformExpenseListForExcel, exportToExcel, transformBillListForExcel } from "@/lib/excel-utils";
 import { robustIframePrint } from "@/lib/robust-print";
@@ -740,6 +743,7 @@ function BillDetailPanel({
   onViewJournal,
   onApplyCredits,
   onExpectedPaymentDate,
+  onRefresh,
 }: {
   bill: Bill;
   branding?: any;
@@ -755,9 +759,12 @@ function BillDetailPanel({
   onViewJournal: () => void;
   onApplyCredits: () => void;
   onExpectedPaymentDate: () => void;
+  onRefresh?: () => void;
 }) {
   const [showPdfView, setShowPdfView] = useState(true);
   const [unusedCredits, setUnusedCredits] = useState(0);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
     // Fetch customer/vendor details to check available credits
@@ -785,6 +792,44 @@ function BillDetailPanel({
   }, [bill]);
 
   const { toast } = useToast();
+
+  const handleApproveBill = async () => {
+    try {
+      const response = await fetch(`/api/admin/bills/${bill.id}/approve`, { method: 'PATCH' });
+      if (response.ok) {
+        toast({ title: "Bill approved" });
+        onRefresh?.();
+      } else {
+        toast({ title: "Failed to approve bill", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Failed to approve bill", variant: "destructive" });
+    }
+  };
+
+  const handleRejectVendorBill = async () => {
+    if (!rejectReason.trim()) {
+      toast({ title: "Please provide a rejection reason", variant: "destructive" });
+      return;
+    }
+    try {
+      const response = await fetch(`/api/admin/bills/${bill.id}/reject-vendor-bill`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: rejectReason })
+      });
+      if (response.ok) {
+        toast({ title: "Bill rejected" });
+        setRejectDialogOpen(false);
+        setRejectReason("");
+        onRefresh?.();
+      } else {
+        toast({ title: "Failed to reject bill", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Failed to reject bill", variant: "destructive" });
+    }
+  };
 
   const handleDownloadPDF = async () => {
     toast({ title: "Preparing download...", description: "Please wait while we generate your PDF." });
@@ -942,6 +987,56 @@ function BillDetailPanel({
         </DropdownMenu>
       </div>
 
+      {(bill as any).createdBy === "vendor" && bill.status?.toUpperCase() === "PENDING APPROVAL" && (
+        <div className="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center gap-3" data-testid="banner-vendor-bill-pending">
+          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-sm text-amber-800 font-medium flex-1">Vendor-submitted bill awaiting approval</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5 border-green-200 text-green-700"
+              onClick={handleApproveBill}
+              data-testid="button-approve-bill"
+            >
+              <CheckCircle className="h-3.5 w-3.5" />
+              Approve
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5 border-red-200 text-red-700"
+              onClick={() => setRejectDialogOpen(true)}
+              data-testid="button-reject-bill"
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              Reject
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {bill.status?.toUpperCase() === "APPROVED" && (
+        <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-center gap-3" data-testid="banner-bill-approved">
+          <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+          <span className="text-sm text-green-800 font-medium">Bill approved</span>
+        </div>
+      )}
+
+      {bill.status?.toUpperCase() === "REJECTED" && (bill as any).createdBy === "vendor" && (
+        <div className="px-4 py-3 bg-red-50 border-b border-red-200" data-testid="banner-bill-rejected">
+          <div className="flex items-center gap-3">
+            <XCircle className="h-4 w-4 text-red-600 shrink-0" />
+            <div className="flex-1">
+              <span className="text-sm text-red-800 font-medium">Vendor-submitted bill rejected</span>
+              {(bill as any).rejectionReason && (
+                <p className="text-xs text-red-600 mt-1">Reason: {(bill as any).rejectionReason}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-end">
         <div className="flex items-center gap-2">
           <Label htmlFor="pdf-view" className="text-sm text-slate-500">
@@ -978,6 +1073,32 @@ function BillDetailPanel({
         </span>
         <button className="text-blue-600 ml-2">Change</button>
       </div>
+
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Vendor Bill</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-slate-600">Please provide a reason for rejecting this vendor-submitted bill.</p>
+            <Textarea
+              placeholder="Enter rejection reason..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="min-h-[100px]"
+              data-testid="input-reject-reason"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setRejectDialogOpen(false); setRejectReason(""); }} data-testid="button-cancel-reject">
+                Cancel
+              </Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" onClick={handleRejectVendorBill} data-testid="button-confirm-reject-bill">
+                Reject Bill
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -2346,6 +2467,7 @@ export default function Bills() {
                 onViewJournal={handleViewJournal}
                 onApplyCredits={handleApplyCredits}
                 onExpectedPaymentDate={handleExpectedPaymentDate}
+                onRefresh={() => { fetchBills(); fetchBillDetail(selectedBill.id); }}
               />
             </ResizablePanel>
           </>

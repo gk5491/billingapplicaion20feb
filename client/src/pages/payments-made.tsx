@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, Filter, CreditCard, MoreHorizontal, Trash2, X, Pencil, Mail, Printer, ChevronDown, ArrowUpDown, RefreshCw, Download, Settings, RotateCcw, FileText } from "lucide-react";
+import { Plus, Search, Filter, CreditCard, MoreHorizontal, Trash2, X, Pencil, Mail, Printer, ChevronDown, ArrowUpDown, RefreshCw, Download, Settings, RotateCcw, FileText, CheckCircle, XCircle, AlertCircle, Clock } from "lucide-react";
 import { usePagination } from "@/hooks/use-pagination";
 import { TablePagination } from "@/components/table-pagination";
 import { useBranding } from "@/hooks/use-branding";
@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
@@ -203,6 +204,8 @@ export default function PaymentsMade() {
   const [sortBy, setSortBy] = useState<string>("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [resolutionText, setResolutionText] = useState("");
   const [columnPreferences, setColumnPreferences] = useState({
     showReference: true,
     showVendor: true,
@@ -465,6 +468,45 @@ export default function PaymentsMade() {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  const handleResolveDispute = async () => {
+    if (!selectedPayment || !resolutionText.trim()) {
+      toast({ title: "Please provide a resolution", variant: "destructive" });
+      return;
+    }
+    try {
+      const response = await fetch(`/api/admin/payments/${selectedPayment.id}/resolve-dispute`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolution: resolutionText })
+      });
+      if (response.ok) {
+        toast({ title: "Dispute resolved" });
+        setResolveDialogOpen(false);
+        setResolutionText("");
+        refetch();
+      } else {
+        toast({ title: "Failed to resolve dispute", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Failed to resolve dispute", variant: "destructive" });
+    }
+  };
+
+  const handleCancelPayment = async () => {
+    if (!selectedPayment) return;
+    try {
+      const response = await fetch(`/api/admin/payments/${selectedPayment.id}/cancel`, { method: 'PATCH' });
+      if (response.ok) {
+        toast({ title: "Payment cancelled" });
+        refetch();
+      } else {
+        toast({ title: "Failed to cancel payment", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Failed to cancel payment", variant: "destructive" });
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -1200,6 +1242,63 @@ export default function PaymentsMade() {
                   </div>
                 </div>
 
+                {(selectedPayment as any).vendorStatus === "Confirmed" && (
+                  <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-center gap-3" data-testid="banner-payment-confirmed">
+                    <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                    <span className="text-sm text-green-800 font-medium">
+                      Vendor confirmed payment on {(selectedPayment as any).confirmedAt ? formatDate((selectedPayment as any).confirmedAt) : 'N/A'}
+                    </span>
+                  </div>
+                )}
+
+                {(selectedPayment as any).vendorStatus === "Disputed" && (
+                  <div className="px-4 py-3 bg-red-50 border-b border-red-200" data-testid="banner-payment-disputed">
+                    <div className="flex items-center gap-3">
+                      <XCircle className="h-4 w-4 text-red-600 shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-red-800 font-medium">Vendor disputed this payment</span>
+                        {(selectedPayment as any).disputeReason && (
+                          <p className="text-xs text-red-600 mt-1">Reason: {(selectedPayment as any).disputeReason}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs gap-1.5 border-blue-200 text-blue-700"
+                          onClick={() => setResolveDialogOpen(true)}
+                          data-testid="button-resolve-dispute"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          Resolve Dispute
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs gap-1.5 border-red-200 text-red-700"
+                          onClick={handleCancelPayment}
+                          data-testid="button-cancel-payment"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                          Cancel Payment
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(selectedPayment as any).vendorStatus === "Dispute Resolved" && (
+                  <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center gap-3" data-testid="banner-dispute-resolved">
+                    <AlertCircle className="h-4 w-4 text-blue-600 shrink-0" />
+                    <div className="flex-1">
+                      <span className="text-sm text-blue-800 font-medium">Dispute resolved</span>
+                      {(selectedPayment as any).resolution && (
+                        <p className="text-xs text-blue-600 mt-1">Resolution: {(selectedPayment as any).resolution}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Detail Content */}
                 <div className="flex-1 overflow-y-auto scrollbar-hide p-6 bg-slate-50 dark:bg-slate-950">
                   {/* Receipt Preview */}
@@ -1585,6 +1684,32 @@ export default function PaymentsMade() {
               Save Changes
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resolve Dispute</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-slate-600">Please provide details about how this dispute was resolved.</p>
+            <Textarea
+              placeholder="Enter resolution details..."
+              value={resolutionText}
+              onChange={(e) => setResolutionText(e.target.value)}
+              className="min-h-[100px]"
+              data-testid="input-resolution-text"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setResolveDialogOpen(false); setResolutionText(""); }} data-testid="button-cancel-resolve">
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleResolveDispute} data-testid="button-confirm-resolve-dispute">
+                Resolve Dispute
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div >

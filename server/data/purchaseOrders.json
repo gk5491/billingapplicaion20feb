@@ -1,6 +1,86 @@
 {
   "purchaseOrders": [
     {
+      "id": "1771831091486",
+      "purchaseOrderNumber": "PO-2025-0009",
+      "referenceNumber": "",
+      "date": "2026-02-23",
+      "deliveryDate": "",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "vendorAddress": {
+        "street1": "Kalwadi Phata",
+        "street2": "PCMC",
+        "city": "Pune",
+        "state": "[MH] - Maharashtra",
+        "pinCode": "41106",
+        "countryRegion": "India"
+      },
+      "deliveryAddress": {
+        "attention": "",
+        "street1": "",
+        "street2": "",
+        "city": "",
+        "state": "",
+        "pinCode": "",
+        "countryRegion": "India"
+      },
+      "deliveryAddressType": "organization",
+      "paymentTerms": "Due on Receipt",
+      "shipmentPreference": "",
+      "reverseCharge": false,
+      "items": [
+        {
+          "id": "1",
+          "itemId": "1770351067854",
+          "itemName": "Laptop",
+          "description": "",
+          "account": "input_tax_credits",
+          "quantity": 11,
+          "rate": 15000,
+          "tax": "none",
+          "taxAmount": 0,
+          "amount": 165000
+        }
+      ],
+      "subTotal": 165000,
+      "discountType": "percent",
+      "discountValue": 0,
+      "discountAmount": 0,
+      "taxType": "TDS",
+      "taxCategory": "none",
+      "taxAmount": 0,
+      "adjustment": 0,
+      "adjustmentDescription": "",
+      "total": 165000,
+      "notes": "",
+      "termsAndConditions": "",
+      "attachments": [],
+      "status": "ISSUED",
+      "receiveStatus": "YET TO BE RECEIVED",
+      "billedStatus": "BILLED",
+      "pdfTemplate": "Standard Template",
+      "createdAt": "2026-02-23T07:18:11.486Z",
+      "updatedAt": "2026-02-23T07:18:58.042Z",
+      "createdBy": "Admin User",
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-23T07:18:11.486Z",
+          "action": "created",
+          "description": "Purchase Order created for ₹1,65,000",
+          "user": "Admin User"
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-02-23T07:18:58.042Z",
+          "action": "converted_to_bill",
+          "description": "Purchase Order converted to Bill",
+          "user": "Admin User"
+        }
+      ]
+    },
+    {
       "id": "1770791894014",
       "purchaseOrderNumber": "PO-2025-0008",
       "referenceNumber": "",
@@ -412,5 +492,5 @@
       "balanceDue": 17700
     }
   ],
-  "nextPurchaseOrderNumber": 9
+  "nextPurchaseOrderNumber": 10
 }

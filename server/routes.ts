@@ -9766,5 +9766,224 @@ export async function registerRoutes(
     }
   });
 
+  // ============ ADMIN WORKFLOW ENDPOINTS ============
+
+  // Admin Resend PO to Vendor
+  app.patch("/api/admin/purchase-orders/:id/resend", async (req: Request, res: Response) => {
+    try {
+      const data = readPurchaseOrdersData();
+      const poIndex = data.purchaseOrders.findIndex((po: any) => po.id === req.params.id);
+      if (poIndex === -1) return res.status(404).json({ success: false, message: "Purchase order not found" });
+
+      const po = data.purchaseOrders[poIndex];
+      po.status = "ISSUED";
+      po.rejectionReason = null;
+      po.rejectedAt = null;
+      po.rejectedBy = null;
+      po.updatedAt = new Date().toISOString();
+
+      if (!po.activityLog) po.activityLog = [];
+      po.activityLog.push({
+        id: String(Date.now()),
+        timestamp: new Date().toISOString(),
+        action: "resent_to_vendor",
+        description: "Purchase order resent to vendor after rejection",
+        user: "Admin"
+      });
+
+      data.purchaseOrders[poIndex] = po;
+      writePurchaseOrdersData(data);
+      res.json({ success: true, data: po });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to resend purchase order" });
+    }
+  });
+
+  // Admin Cancel PO
+  app.patch("/api/admin/purchase-orders/:id/cancel", async (req: Request, res: Response) => {
+    try {
+      const data = readPurchaseOrdersData();
+      const poIndex = data.purchaseOrders.findIndex((po: any) => po.id === req.params.id);
+      if (poIndex === -1) return res.status(404).json({ success: false, message: "Purchase order not found" });
+
+      const po = data.purchaseOrders[poIndex];
+      po.status = "CANCELLED";
+      po.updatedAt = new Date().toISOString();
+
+      if (!po.activityLog) po.activityLog = [];
+      po.activityLog.push({
+        id: String(Date.now()),
+        timestamp: new Date().toISOString(),
+        action: "cancelled",
+        description: "Purchase order cancelled by admin",
+        user: "Admin"
+      });
+
+      data.purchaseOrders[poIndex] = po;
+      writePurchaseOrdersData(data);
+      res.json({ success: true, data: po });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to cancel purchase order" });
+    }
+  });
+
+  // Admin Approve Vendor Bill
+  app.patch("/api/admin/bills/:id/approve", async (req: Request, res: Response) => {
+    try {
+      const data = readBillsData();
+      const billIndex = data.bills.findIndex((b: any) => b.id === req.params.id);
+      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
+
+      const bill = data.bills[billIndex];
+      bill.status = "Approved";
+      bill.updatedAt = new Date().toISOString();
+
+      if (!bill.activityLogs) bill.activityLogs = [];
+      bill.activityLogs.push({
+        id: String(Date.now()),
+        timestamp: new Date().toISOString(),
+        action: "approved",
+        description: "Bill approved by Admin",
+        user: "Admin"
+      });
+
+      data.bills[billIndex] = bill;
+      writeBillsData(data);
+      res.json({ success: true, data: bill });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to approve bill" });
+    }
+  });
+
+  // Admin Reject Vendor Bill
+  app.patch("/api/admin/bills/:id/reject-vendor-bill", async (req: Request, res: Response) => {
+    try {
+      const data = readBillsData();
+      const billIndex = data.bills.findIndex((b: any) => b.id === req.params.id);
+      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
+
+      const bill = data.bills[billIndex];
+      bill.status = "Rejected";
+      bill.rejectionReason = req.body.reason || "";
+      bill.updatedAt = new Date().toISOString();
+
+      if (!bill.activityLogs) bill.activityLogs = [];
+      bill.activityLogs.push({
+        id: String(Date.now()),
+        timestamp: new Date().toISOString(),
+        action: "rejected",
+        description: `Bill rejected: ${req.body.reason || "No reason provided"}`,
+        user: "Admin"
+      });
+
+      data.bills[billIndex] = bill;
+      writeBillsData(data);
+      res.json({ success: true, data: bill });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to reject bill" });
+    }
+  });
+
+  // Admin Resolve Disputed Payment
+  app.patch("/api/admin/payments/:id/resolve-dispute", async (req: Request, res: Response) => {
+    try {
+      const data = readPaymentsMadeDataGlobal();
+      const paymentIndex = data.paymentsMade.findIndex((p: any) => p.id === req.params.id);
+      if (paymentIndex === -1) return res.status(404).json({ success: false, message: "Payment not found" });
+
+      const payment = data.paymentsMade[paymentIndex];
+      payment.vendorStatus = "Dispute Resolved";
+      payment.resolution = req.body.resolution || "";
+      payment.updatedAt = new Date().toISOString();
+
+      if (!payment.activityLogs) payment.activityLogs = [];
+      payment.activityLogs.push({
+        id: String(Date.now()),
+        timestamp: new Date().toISOString(),
+        action: "dispute_resolved",
+        description: `Payment dispute resolved: ${req.body.resolution || "No resolution provided"}`,
+        user: "Admin"
+      });
+
+      data.paymentsMade[paymentIndex] = payment;
+      writePaymentsMadeDataGlobal(data);
+      res.json({ success: true, data: payment });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to resolve dispute" });
+    }
+  });
+
+  // Admin Cancel Disputed Payment
+  app.patch("/api/admin/payments/:id/cancel", async (req: Request, res: Response) => {
+    try {
+      const data = readPaymentsMadeDataGlobal();
+      const paymentIndex = data.paymentsMade.findIndex((p: any) => p.id === req.params.id);
+      if (paymentIndex === -1) return res.status(404).json({ success: false, message: "Payment not found" });
+
+      const payment = data.paymentsMade[paymentIndex];
+      payment.vendorStatus = "Cancelled";
+      payment.status = "Cancelled";
+      payment.updatedAt = new Date().toISOString();
+
+      if (!payment.activityLogs) payment.activityLogs = [];
+      payment.activityLogs.push({
+        id: String(Date.now()),
+        timestamp: new Date().toISOString(),
+        action: "cancelled",
+        description: "Payment cancelled by admin",
+        user: "Admin"
+      });
+
+      data.paymentsMade[paymentIndex] = payment;
+      writePaymentsMadeDataGlobal(data);
+      res.json({ success: true, data: payment });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to cancel payment" });
+    }
+  });
+
+  // Vendor Edit Bill
+  app.put("/api/vendor/bills/:id", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const data = readBillsData();
+      const billIndex = data.bills.findIndex((b: any) => b.id === req.params.id);
+      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
+
+      const bill = data.bills[billIndex];
+      if (bill.status !== "Pending Approval" && bill.status !== "Rejected") {
+        return res.status(400).json({ success: false, message: "Only bills with status 'Pending Approval' or 'Rejected' can be edited" });
+      }
+
+      const preservedFields = {
+        vendorId: bill.vendorId,
+        vendorName: bill.vendorName,
+        createdBy: bill.createdBy,
+      };
+
+      const updatedBill = {
+        ...bill,
+        ...req.body,
+        ...preservedFields,
+        id: bill.id,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (!updatedBill.activityLogs) updatedBill.activityLogs = [];
+      updatedBill.activityLogs.push({
+        id: String(Date.now()),
+        timestamp: new Date().toISOString(),
+        action: "edited_by_vendor",
+        description: "Bill updated by vendor",
+        user: "Vendor"
+      });
+
+      data.bills[billIndex] = updatedBill;
+      writeBillsData(data);
+      res.json({ success: true, data: updatedBill });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to update bill" });
+    }
+  });
+
   return httpServer;
 }

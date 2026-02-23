@@ -12,7 +12,7 @@ import {
   Plus, Search, ChevronDown, MoreHorizontal, Pencil, Trash2,
   X, Mail, FileText, Printer, ArrowRight, Filter, Download,
   ClipboardList, Eye, Check, Calendar, XCircle, Copy, Archive,
-  ArrowUpDown, RefreshCw, FileSpreadsheet
+  ArrowUpDown, RefreshCw, FileSpreadsheet, CheckCircle, AlertCircle, Clock
 } from "lucide-react";
 import { robustIframePrint } from "@/lib/robust-print";
 import { generatePDFFromElement } from "@/lib/pdf-utils";
@@ -316,7 +316,8 @@ function PurchaseOrderDetailPanel({
   onSetDeliveryDate,
   onCancelItems,
   branding,
-  organization
+  organization,
+  onRefresh
 }: {
   purchaseOrder: PurchaseOrder;
   onClose: () => void;
@@ -331,10 +332,39 @@ function PurchaseOrderDetailPanel({
   onCancelItems: () => void;
   branding?: any;
   organization?: Organization;
+  onRefresh?: () => void;
 }) {
   const [showPdfView, setShowPdfView] = useState(true);
   const pdfRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const handleResendToVendor = async () => {
+    try {
+      const response = await fetch(`/api/admin/purchase-orders/${purchaseOrder.id}/resend`, { method: 'PATCH' });
+      if (response.ok) {
+        toast({ title: "PO resent to vendor" });
+        onRefresh?.();
+      } else {
+        toast({ title: "Failed to resend PO", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Failed to resend PO", variant: "destructive" });
+    }
+  };
+
+  const handleAdminCancelPO = async () => {
+    try {
+      const response = await fetch(`/api/admin/purchase-orders/${purchaseOrder.id}/cancel`, { method: 'PATCH' });
+      if (response.ok) {
+        toast({ title: "PO cancelled" });
+        onRefresh?.();
+      } else {
+        toast({ title: "Failed to cancel PO", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Failed to cancel PO", variant: "destructive" });
+    }
+  };
 
   const handleDownloadPDF = async () => {
     toast({ title: "Preparing download...", description: "Please wait while we generate your PDF." });
@@ -564,6 +594,60 @@ function PurchaseOrderDetailPanel({
               </Button>
             )}
           </div>
+        </div>
+      )}
+
+      {purchaseOrder.status?.toUpperCase() === 'ACCEPTED' && (
+        <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-center gap-3" data-testid="banner-vendor-accepted">
+          <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+          <span className="text-sm text-green-800 font-medium">
+            Vendor accepted on {(purchaseOrder as any).acceptedAt ? formatDate((purchaseOrder as any).acceptedAt) : 'N/A'}
+          </span>
+        </div>
+      )}
+
+      {purchaseOrder.status?.toUpperCase() === 'REJECTED' && (
+        <div className="px-4 py-3 bg-red-50 border-b border-red-200" data-testid="banner-vendor-rejected">
+          <div className="flex items-center gap-3">
+            <XCircle className="h-4 w-4 text-red-600 shrink-0" />
+            <div className="flex-1">
+              <span className="text-sm text-red-800 font-medium">
+                Vendor rejected on {(purchaseOrder as any).rejectedAt ? formatDate((purchaseOrder as any).rejectedAt) : 'N/A'}
+              </span>
+              {(purchaseOrder as any).rejectionReason && (
+                <p className="text-xs text-red-600 mt-1">Reason: {(purchaseOrder as any).rejectionReason}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5 border-red-200 text-red-700"
+                onClick={handleResendToVendor}
+                data-testid="button-resend-to-vendor"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Resend to Vendor
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5 border-red-200 text-red-700"
+                onClick={handleAdminCancelPO}
+                data-testid="button-admin-cancel-po"
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                Cancel PO
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {purchaseOrder.status?.toUpperCase() === 'ISSUED' && (
+        <div className="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center gap-3" data-testid="banner-awaiting-vendor">
+          <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-sm text-amber-800 font-medium">Awaiting vendor response</span>
         </div>
       )}
 
@@ -1559,6 +1643,7 @@ export default function PurchaseOrders() {
                 onCancelItems={() => handleCancelItems(selectedPO.id)}
                 branding={branding}
                 organization={organization || undefined}
+                onRefresh={() => { fetchPurchaseOrders(); fetchPODetail(selectedPO.id); }}
               />
             </ResizablePanel>
           </>
