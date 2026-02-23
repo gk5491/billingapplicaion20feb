@@ -576,13 +576,16 @@
       "notes": "Online payment recorded by customer for invoice INV-00018",
       "attachments": [],
       "sendThankYou": true,
-      "status": "Pending Verification",
+      "status": "Not Received",
       "paymentType": "Customer Payment",
       "placeOfSupply": "",
       "descriptionOfSupply": "",
       "amountInWords": "",
       "journalEntries": [],
-      "createdAt": "2026-02-18T09:10:35.951Z"
+      "createdAt": "2026-02-18T09:10:35.951Z",
+      "updatedAt": "2026-02-23T05:11:15.703Z",
+      "verifiedAt": "2026-02-23T05:09:51.500Z",
+      "verifiedBy": "Admin"
     },
     {
       "id": "1771477675525",

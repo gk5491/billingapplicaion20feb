@@ -371,7 +371,7 @@
       ],
       "subTotal": 300,
       "total": 300,
-      "amountPaid": 0,
+      "amountPaid": 900,
       "balanceDue": 0,
       "status": "Paid",
       "sourceType": "quote",

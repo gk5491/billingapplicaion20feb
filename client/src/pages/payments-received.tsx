@@ -330,7 +330,6 @@ function PaymentDetailPanel({
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Received">Received</SelectItem>
                 <SelectItem value="Verified">Verified</SelectItem>
                 <SelectItem value="Not Received">Not Received</SelectItem>
                 <SelectItem value="Pending Verification">Pending Verification</SelectItem>

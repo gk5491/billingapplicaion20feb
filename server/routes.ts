@@ -7145,6 +7145,16 @@ export async function registerRoutes(
   app.patch("/api/payments-received/:id/status", async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ success: false, message: "Status is required" });
+    }
+
+    const validStatuses = ['Verified', 'Not Received', 'Pending Verification', 'PAID', 'PAID_SUCCESS'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: `Invalid status: ${status}` });
+    }
+
     try {
       const paymentsReceivedData = readPaymentsReceivedData();
       const paymentIndex = paymentsReceivedData.paymentsReceived.findIndex((p: any) => p.id === id);
@@ -7157,8 +7167,8 @@ export async function registerRoutes(
       const payment = paymentsReceivedData.paymentsReceived[paymentIndex];
       payment.updatedAt = new Date().toISOString();
 
-      // Also update verified fields if moving to Verified or Received
-      if (status === 'Verified' || status === 'Received' || status === 'PAID' || status === 'PAID_SUCCESS') {
+      // Also update verified fields if moving to Verified or PAID
+      if (status === 'Verified' || status === 'PAID' || status === 'PAID_SUCCESS') {
         payment.verifiedAt = new Date().toISOString();
         payment.verifiedBy = "Admin";
 
@@ -7214,16 +7224,16 @@ export async function registerRoutes(
           console.error("Error updating invoice balances:", err);
         }
 
-        // AUTOMATIC RECEIPT GENERATION
-        if (status === 'Received') {
+        // AUTOMATIC RECEIPT GENERATION when admin marks as PAID
+        if (status === 'PAID' || status === 'PAID_SUCCESS') {
           try {
             const receipt: any = {
               paymentId: payment.id,
               customerId: payment.customerId,
               paymentNumber: payment.paymentNumber,
               invoiceNumber: payment.invoices?.[0]?.invoiceNumber || null,
-              amount: payment.amount.toString(),
-              date: payment.date,
+              amount: String(payment.amount || 0),
+              date: payment.date || new Date().toISOString(),
               status: "received",
               pdfUrl: null
             };
