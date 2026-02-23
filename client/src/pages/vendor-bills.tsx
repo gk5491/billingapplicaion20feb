@@ -466,8 +466,34 @@ function VendorBillDetailPanel({
   organization?: Organization;
 }) {
   const [showPdfView, setShowPdfView] = useState(true);
+  const [isSendingReceipt, setIsSendingReceipt] = useState(false);
+  const [receiptStatus, setReceiptStatus] = useState(bill.paymentReceiptStatus || "Not Verified");
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  const handleSendReceipt = async () => {
+    setIsSendingReceipt(true);
+    try {
+      const response = await fetch(`/api/vendor/payments/${bill.id}/receipt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${useAuthStore.getState().token}`
+        },
+        body: JSON.stringify({ status: receiptStatus })
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast({ title: "Success", description: "Payment receipt sent to admin." });
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to send receipt.", variant: "destructive" });
+    } finally {
+      setIsSendingReceipt(false);
+    }
+  };
 
   const canEdit = bill.status === "DRAFT" || bill.status === "Pending Approval" || bill.status === "REJECTED" || bill.status === "Rejected";
   const canResubmit = bill.status === "Rejected";
@@ -575,6 +601,30 @@ function VendorBillDetailPanel({
             </Button>
           </>
         )}
+
+        <div className="w-px h-4 bg-slate-200 mx-1" />
+        <div className="flex items-center gap-2">
+          <Select value={receiptStatus} onValueChange={setReceiptStatus}>
+            <SelectTrigger className="h-8 w-32 text-xs font-semibold">
+              <SelectValue placeholder="Receipt Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Not Verified">Not Verified</SelectItem>
+              <SelectItem value="Verified">Verified</SelectItem>
+              <SelectItem value="PAID">PAID</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 gap-1.5 text-xs font-semibold text-blue-600" 
+            onClick={handleSendReceipt}
+            disabled={isSendingReceipt}
+          >
+            <Send className="h-3.5 w-3.5" />
+            {isSendingReceipt ? "Sending..." : "Send Receipt"}
+          </Button>
+        </div>
       </div>
 
       {(bill.status === "Rejected" || bill.status === "REJECTED") && bill.rejectionReason && (

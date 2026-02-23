@@ -1115,6 +1115,18 @@ export default function VendorBillCreate() {
                         ₹{calculateBalanceDue().toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
+
+                    <div className="pt-4">
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        className="w-full text-xs font-bold uppercase tracking-wider text-blue-600 border-blue-200 hover:bg-blue-50"
+                        onClick={() => handleSubmit("Submitted")}
+                        disabled={isSubmitting}
+                      >
+                        Send to Customer (Admin)
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
