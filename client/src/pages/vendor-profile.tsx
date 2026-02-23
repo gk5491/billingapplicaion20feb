@@ -550,16 +550,20 @@ export default function VendorProfilePage() {
                                                     <TableCell colSpan={4} className="text-center py-8 text-slate-400 italic">No {type.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} found.</TableCell>
                                                 </TableRow>
                                             ) : (
-                                                list.map((tx: any) => (
+                                                list.map((tx: any) => {
+                                                    const txDate = tx.billDate || tx.date || tx.paymentDate || tx.createdAt;
+                                                    const txAmount = tx.total || tx.amount || tx.paymentAmount || 0;
+                                                    return (
                                                     <TableRow key={tx.id}>
-                                                        <TableCell className="text-sm">{format(new Date(tx.billDate || tx.date), "dd MMM yyyy")}</TableCell>
-                                                        <TableCell className="text-sm font-semibold text-sidebar">{tx.billNumber || tx.purchaseOrderNumber || tx.number || tx.paymentNumber || tx.creditNoteNumber}</TableCell>
-                                                        <TableCell className="text-right text-sm font-medium">{formatCurrency(tx.total || tx.amount)}</TableCell>
+                                                        <TableCell className="text-sm">{txDate ? format(new Date(txDate), "dd MMM yyyy") : "—"}</TableCell>
+                                                        <TableCell className="text-sm font-semibold text-sidebar">{tx.billNumber || tx.purchaseOrderNumber || tx.number || tx.paymentNumber || tx.creditNoteNumber || "—"}</TableCell>
+                                                        <TableCell className="text-right text-sm font-medium">{formatCurrency(txAmount)}</TableCell>
                                                         <TableCell className="text-right">
                                                             <Badge variant="outline" className="text-[10px] font-bold uppercase">{tx.status}</Badge>
                                                         </TableCell>
                                                     </TableRow>
-                                                ))
+                                                    );
+                                                })
                                             )}
                                         </TableBody>
                                     </Table>
