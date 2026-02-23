@@ -9669,6 +9669,9 @@ export async function registerRoutes(
         writeVendorItems(vendorItems);
       }
 
+      // Reversal Logic: If status is changed from Submitted/Approved to Rejected, revert stock
+      // This part would normally be in a PUT route, adding it here for consistency if needed or planning for PUT
+
       billsData.bills.push(newBill);
       writeBillsData(billsData);
 

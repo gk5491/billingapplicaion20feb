@@ -335,18 +335,23 @@ export default function VendorBillCreate() {
 
     const billItems: BillItem[] = (po.items || []).map((item: any, index: number) => {
       const vendorItem = vendorItems.find(vi => vi.name === item.itemName || vi.id === item.itemId);
+      const rate = vendorItem ? (parseRateValue(vendorItem.purchaseRate) || vendorItem.costPrice || item.rate || 0) : (item.rate || 0);
+      const taxRateStr = vendorItem?.intraStateTax || item.tax || "";
+      const taxRate = taxes.find(t => t.name === taxRateStr)?.rate || 0;
+      const amount = (item.quantity || 1) * rate;
+      
       return {
         id: `item-${Date.now()}-${index}`,
         itemName: item.itemName || item.name || "",
-        itemId: item.itemId || "",
-        description: item.description || "",
+        itemId: vendorItem?.id || item.itemId || "",
+        description: item.description || vendorItem?.purchaseDescription || "",
         account: item.account || vendorItem?.purchaseAccount || "Cost of Goods Sold",
         quantity: item.quantity || 1,
-        rate: item.rate || 0,
-        tax: item.tax || "",
-        taxAmount: item.taxAmount || 0,
+        rate: rate,
+        tax: taxRateStr,
+        taxAmount: (amount * taxRate) / 100,
         customerDetails: "none",
-        amount: (item.quantity || 1) * (item.rate || 0),
+        amount: amount,
         availableQuantity: vendorItem?.availableQuantity,
       };
     });
@@ -496,7 +501,10 @@ export default function VendorBillCreate() {
         ...prev,
         items: prev.items.map(item => {
           if (item.id === itemId) {
-            const rate = parseRateValue(vendorItem.rate) || vendorItem.costPrice || vendorItem.sellingPrice || 0;
+            const rate = parseRateValue(vendorItem.purchaseRate) || vendorItem.costPrice || vendorItem.sellingPrice || 0;
+            const taxRateStr = vendorItem.intraStateTax || "";
+            const taxRate = taxes.find(t => t.name === taxRateStr)?.rate || 0;
+            const amount = item.quantity * rate;
             return {
               ...item,
               itemName: vendorItem.name,
@@ -504,7 +512,9 @@ export default function VendorBillCreate() {
               description: vendorItem.purchaseDescription || vendorItem.description || "",
               account: vendorItem.purchaseAccount || item.account || "",
               rate: rate,
-              amount: item.quantity * rate,
+              tax: taxRateStr,
+              taxAmount: (amount * taxRate) / 100,
+              amount: amount,
               availableQuantity: vendorItem.availableQuantity,
             };
           }
