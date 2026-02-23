@@ -271,6 +271,7 @@ export default function VendorCreate() {
     isCrm: false,
     isPortalEnabled: false,
     remarks: "",
+    tempPassword: "",
   });
 
   const [contactPersons, setContactPersons] = useState<ContactPerson[]>([]);
@@ -418,6 +419,11 @@ export default function VendorCreate() {
       }
     }
 
+    if (!formData.tempPassword || formData.tempPassword.length < 4) {
+      toast({ title: "Temporary Password is required (min 4 characters)", variant: "destructive" });
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -532,6 +538,18 @@ export default function VendorCreate() {
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               data-testid="input-email"
+            />
+
+            <Label className="text-sm font-medium text-slate-700 pt-2 flex items-center gap-1">
+              Temporary Password
+              <span className="text-xs text-red-600">*</span>
+            </Label>
+            <Input
+              type="password"
+              placeholder="Set temporary password for vendor login"
+              value={formData.tempPassword}
+              onChange={(e) => handleInputChange('tempPassword', e.target.value)}
+              data-testid="input-temp-password"
             />
 
             <Label className="text-sm font-medium text-slate-700 pt-2 flex items-center gap-1">

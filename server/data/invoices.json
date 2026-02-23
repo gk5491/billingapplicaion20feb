@@ -1,6 +1,86 @@
 {
   "invoices": [
     {
+      "id": "1771824422675",
+      "organizationId": "1",
+      "invoiceNumber": "INV-00024",
+      "referenceNumber": "",
+      "date": "2026-02-23",
+      "dueDate": "2026-02-23",
+      "customerId": "2",
+      "customerName": "Mr. Ganesh K",
+      "billingAddress": {
+        "street": "",
+        "city": "",
+        "state": "",
+        "country": "India",
+        "pincode": ""
+      },
+      "shippingAddress": {
+        "street": "",
+        "city": "",
+        "state": "",
+        "country": "India",
+        "pincode": ""
+      },
+      "salesperson": "",
+      "placeOfSupply": "",
+      "paymentTerms": "Due on Receipt",
+      "items": [
+        {
+          "id": "1",
+          "name": "Laptop",
+          "description": "",
+          "quantity": 1,
+          "rate": 15000,
+          "amount": 15000,
+          "unit": "set",
+          "ordered": 1
+        }
+      ],
+      "subTotal": 15000,
+      "shippingCharges": 0,
+      "cgst": 0,
+      "sgst": 0,
+      "igst": 0,
+      "adjustment": 0,
+      "total": 15000,
+      "status": "Partially Paid",
+      "sourceType": "sales_order",
+      "sourceId": "1771824309532",
+      "sourceNumber": null,
+      "pdfTemplate": "Standard Template",
+      "createdAt": "2026-02-23T05:27:02.673Z",
+      "updatedAt": "2026-02-23T05:27:10.725Z",
+      "createdBy": "Admin User",
+      "payments": [],
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-23T05:27:02.673Z",
+          "action": "created",
+          "description": "Invoice created for ₹15,000",
+          "user": "Admin User"
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-02-23T05:27:10.725Z",
+          "action": "sent",
+          "description": "Invoice has been sent",
+          "user": "Admin User"
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-02-23T05:27:32.926Z",
+          "action": "payment_recorded",
+          "description": "Payment of ₹10,000 recorded and awaiting verification",
+          "user": "Customer Ganesh"
+        }
+      ],
+      "amountPaid": 10000,
+      "balanceDue": 5000
+    },
+    {
       "id": "1771822404696",
       "invoiceNumber": "INV-00023",
       "referenceNumber": "",
@@ -1835,5 +1915,5 @@
       ]
     }
   ],
-  "nextInvoiceNumber": 24
+  "nextInvoiceNumber": 25
 }

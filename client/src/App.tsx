@@ -83,6 +83,13 @@ import CustomerPaymentHistoryPage from "@/pages/customer-payment-history";
 import { useAuthStore } from "@/store/authStore";
 import { useLocation } from "wouter";
 
+import VendorDashboard from "@/pages/vendor-dashboard";
+import VendorProfilePage from "@/pages/vendor-profile";
+import VendorPurchaseOrdersPage from "@/pages/vendor-purchase-orders";
+import VendorBillsPage from "@/pages/vendor-bills";
+import VendorPaymentHistoryPage from "@/pages/vendor-payment-history";
+import VendorReceiptsPage from "@/pages/vendor-receipts";
+
 function Router() {
   return (
     <Switch>
@@ -101,6 +108,14 @@ function Router() {
               <Route path="/customer/invoices" component={CustomerInvoicesPage} />
               <Route path="/customer/receipts" component={CustomerReceiptsPage} />
               <Route path="/customer/payment-history" component={CustomerPaymentHistoryPage} />
+
+              {/* Vendor Routes */}
+              <Route path="/vendor/dashboard" component={VendorDashboard} />
+              <Route path="/vendor/profile" component={VendorProfilePage} />
+              <Route path="/vendor/purchase-orders" component={VendorPurchaseOrdersPage} />
+              <Route path="/vendor/bills" component={VendorBillsPage} />
+              <Route path="/vendor/payment-history" component={VendorPaymentHistoryPage} />
+              <Route path="/vendor/receipts" component={VendorReceiptsPage} />
 
               <Route path="/settings/organizations" component={SettingsOrganizations} />
               <Route path="/" component={Dashboard} />

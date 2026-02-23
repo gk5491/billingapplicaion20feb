@@ -149,6 +149,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { data: branding } = useBranding();
   const { user, logout } = useAuthStore();
   const isCustomer = user?.role === 'customer';
+  const isVendor = user?.role === 'vendor';
 
   // ... NavItem definitions
 
@@ -215,7 +216,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <ScrollArea className="flex-1 py-3">
         <div className="px-2 space-y-0.5">
-          {isCustomer ? (
+          {isVendor ? (
+            <>
+              <NavItem href="/vendor/dashboard" icon={Home} label="Dashboard" />
+              <NavItem href="/vendor/profile" icon={UserCog} label="My Profile" />
+              <NavItem href="/vendor/purchase-orders" icon={ShoppingBag} label="Purchase Orders" />
+              <NavItem href="/vendor/bills" icon={FileText} label="Bills" />
+              <NavItem href="/vendor/payment-history" icon={History} label="Payment History" />
+              <NavItem href="/vendor/receipts" icon={FileCheck} label="Receipts" />
+            </>
+          ) : isCustomer ? (
             <>
               <NavItem href="/customer-dashboard" icon={Home} label="Dashboard" />
               <NavItem href="/customer/profile" icon={UserCog} label="My Profile" />

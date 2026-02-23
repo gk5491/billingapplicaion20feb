@@ -1,0 +1,114 @@
+🏢 VENDOR MODULE
+1️⃣ ADMIN → CREATE VENDOR
+When Admin creates a new Vendor:
+Admin → Create Vendor + Temp Password
+↓
+NEW FIELD (Important)
+Add input:
+Temporary Password *
+Type: password
+Required: Yes
+↓
+Vendor Login
+↓
+🔷 Left Sidebar Menu (Vendor)
+Show these sections:
+•	Dashboard
+•	My Profile
+•	Purchase Orders
+•	Bills
+•	Payment History
+•	Receipts
+Exactly like Customer sidebar — just vendor-based modules.
+2️⃣ 👤 My Profile (Vendor)
+Same design  ui as customer profile screen.
+
+Vendor Dashboard Loads
+↓
+Should Show:
+•	Total Purchase Orders
+•	Pending Bills
+•	Outstanding Payables
+•	Recent Payments
+•	Activity Timeline
+Cards Example:
+Card	Data
+Total Purchase Orders	Count
+Pending Bills	Count
+Outstanding Amount	₹ Value
+Paid Amount	₹ Value
+
+Admin → Send Purchase Order
+↓
+Option A: Accept
+Status → Accepted
+Flow continues.
+Option B: Reject
+Status → Rejected
+Vendor must provide:
+•	Rejection Reason
+System should:
+•	Notify Admin
+•	Show PO in "Rejected Purchase Orders"
+Admin options after rejection:
+•	Edit PO and resend
+•	Cancel PO permanently
+
+↓
+Vendor → Create Bill
+↓
+Admin 
+Option A: Approve
+Bill Status → Approved
+Flow continues.
+Option B: Reject
+Bill Status → Rejected
+Admin must provide:
+•	Rejection Reason (price mismatch, quantity issue, etc.)
+System should:
+•	Notify Vendor
+•	Show bill in "Rejected Bills"
+Vendor options after rejection:
+•	Edit Bill
+•	Resubmit Bill
+Resubmitted Bill:
+Status → Pending Approval
+
+↓
+Admin → Record Payment
+↓
+Payment Status → Pending Verification
+Bill Status still remains:
+•	Approved
+•	But not marked Paid yet
+
+Vendor → Verify and Update Bill Status 
+↓
+Vendor Options:
+Option A: Confirm Payment
+Payment Status → Confirmed
+Bill updates:
+•	Paid Amount increases
+•	Balance reduces
+•	Status changes (Unpaid / Partial / Paid)
+Option B: Reject Payment
+Payment Status → Disputed
+Vendor must provide:
+•	Dispute Reason (wrong amount, not received, etc.)
+System should:
+•	Notify Admin
+•	Payment moves to "Disputed Payments"
+Admin can:
+•	Recheck
+•	Modify payment
+•	Cancel payment
+•	Record new payment
+________________________________________
+🔹 5️⃣ RECEIPT GENERATION
+After Vendor confirms payment:
+Vendor clicks:
+👉 Generate Receipt
+👉 Send to Admin
+Receipt visible in:
+Admin → Vendor Payments
+Vendor → Receipts

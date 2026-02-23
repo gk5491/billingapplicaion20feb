@@ -60,6 +60,13 @@
       "name": "Mrs. Priyanka karanjewar",
       "role": "customer",
       "id": "f1d60796-d246-4b62-8d84-dc3f6a477a16"
+    },
+    {
+      "username": "kadamprajwal358@gmail.com",
+      "password": "vendor123",
+      "name": "Prajwal K",
+      "role": "vendor",
+      "id": "bf9abd86-7e4c-4165-aae6-f8f35d336406"
     }
   ]
 }

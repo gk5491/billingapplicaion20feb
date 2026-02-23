@@ -219,6 +219,19 @@
       "sentAt": "2026-02-23T04:52:44.430Z",
       "providerMessageId": "mock-1771822364429-auh9suh",
       "providerResponse": "\"250 2.0.0 OK (Mock)\""
+    },
+    {
+      "id": "3857717f-ec8e-40f1-b993-df7aa7750cd6",
+      "triggerId": "d7322223-3eb4-49b0-b1a4-51d62b649b72",
+      "toAddresses": "[\"ganeshkale5491@gmail.com\"]",
+      "subject": "Sales Order SO-000005 from Cybaem Tech",
+      "status": "sent",
+      "attempts": 0,
+      "createdAt": "2026-02-23T05:25:29.089Z",
+      "updatedAt": "2026-02-23T05:25:29.091Z",
+      "sentAt": "2026-02-23T05:25:29.091Z",
+      "providerMessageId": "mock-1771824329091-jsry0jd",
+      "providerResponse": "\"250 2.0.0 OK (Mock)\""
     }
   ]
 }

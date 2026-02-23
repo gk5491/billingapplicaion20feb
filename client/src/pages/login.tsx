@@ -57,6 +57,8 @@ export default function LoginPage() {
             // Redirect based on role
             if (data.data.user.role === "customer") {
                 setLocation("/customer-dashboard");
+            } else if (data.data.user.role === "vendor") {
+                setLocation("/vendor/dashboard");
             } else {
                 setLocation("/");
             }
@@ -191,6 +193,7 @@ export default function LoginPage() {
                     <div>Super Admin: superadmin / password</div>
                     <div>Admin: admin / password</div>
                     <div>Customer: customer / password</div>
+                    <div>Vendor: (created by admin)</div>
                 </CardFooter>
             </Card>
         </div>

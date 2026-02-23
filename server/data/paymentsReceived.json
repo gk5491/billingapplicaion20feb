@@ -576,15 +576,15 @@
       "notes": "Online payment recorded by customer for invoice INV-00018",
       "attachments": [],
       "sendThankYou": true,
-      "status": "Not Received",
+      "status": "PAID",
       "paymentType": "Customer Payment",
       "placeOfSupply": "",
       "descriptionOfSupply": "",
       "amountInWords": "",
       "journalEntries": [],
       "createdAt": "2026-02-18T09:10:35.951Z",
-      "updatedAt": "2026-02-23T05:11:15.703Z",
-      "verifiedAt": "2026-02-23T05:09:51.500Z",
+      "updatedAt": "2026-02-23T05:18:58.594Z",
+      "verifiedAt": "2026-02-23T05:18:58.594Z",
       "verifiedBy": "Admin"
     },
     {
@@ -1032,7 +1032,39 @@
       "updatedAt": "2026-02-23T04:54:54.776Z",
       "verifiedAt": "2026-02-23T04:54:54.776Z",
       "verifiedBy": "Admin"
+    },
+    {
+      "id": "1771824452925",
+      "paymentNumber": "PAY-116",
+      "date": "2026-02-23T05:29:49.277Z",
+      "referenceNumber": "",
+      "customerId": "2",
+      "customerName": "Mr. Ganesh K",
+      "customerEmail": "ganeshkale5491@gmail.com",
+      "invoices": [
+        {
+          "id": "1771824422675",
+          "invoiceNumber": "INV-00024",
+          "amountApplied": 10000
+        }
+      ],
+      "mode": "Bank Transfer",
+      "depositTo": "Undeposited Funds",
+      "amount": 10000,
+      "unusedAmount": 0,
+      "bankCharges": 0,
+      "tax": "None",
+      "taxAmount": 0,
+      "notes": "",
+      "attachments": [],
+      "sendThankYou": true,
+      "status": "Verified",
+      "paymentType": "Customer Payment",
+      "createdAt": "2026-02-23T05:27:32.925Z",
+      "updatedAt": "2026-02-23T05:28:23.322Z",
+      "verifiedAt": "2026-02-23T05:28:23.322Z",
+      "verifiedBy": "Admin"
     }
   ],
-  "nextPaymentNumber": 116
+  "nextPaymentNumber": 117
 }

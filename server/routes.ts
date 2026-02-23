@@ -729,7 +729,7 @@ function generatePaymentMadeNumberGlobal(num: number): string {
 }
 
 import { authRouter } from "./src/modules/auth/routes";
-import { authenticate } from "./src/middleware/auth";
+import { authenticate, requireRole } from "./src/middleware/auth";
 import { createFlowRouter } from "./src/modules/sales/routes/flow.ts";
 
 export async function registerRoutes(
@@ -4078,7 +4078,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vendors", (req: Request, res: Response) => {
+  app.post("/api/vendors", async (req: Request, res: Response) => {
     try {
       const data = readVendorsData();
       const newVendor = {
@@ -4094,6 +4094,24 @@ export async function registerRoutes(
       data.vendors.push(newVendor);
       data.nextVendorId += 1;
       writeVendorsData(data);
+
+      // Create vendor user account for portal login (only if temp password provided)
+      if (req.body.tempPassword && req.body.email) {
+        try {
+          const existingUser = await storage.getUserByUsername(req.body.email);
+          if (!existingUser) {
+            await storage.createUser({
+              username: req.body.email,
+              password: req.body.tempPassword,
+              name: req.body.displayName || req.body.companyName || `Vendor ${newVendor.id}`,
+              role: 'vendor',
+            });
+          }
+        } catch (userError) {
+          console.error("Failed to create user account for vendor:", userError);
+        }
+      }
+
       res.status(201).json({ success: true, data: newVendor });
     } catch (error) {
       res.status(500).json({ success: false, message: "Failed to create vendor" });
@@ -9329,6 +9347,422 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error saving transactions:", error);
       res.status(500).json({ success: false, message: "Failed to save transactions" });
+    }
+  });
+
+  // =============================================
+  // VENDOR PORTAL API ENDPOINTS
+  // =============================================
+
+  const VENDOR_RECEIPTS_FILE = path.join(DATA_DIR, "vendorReceipts.json");
+
+  function readVendorReceiptsData() {
+    if (!fs.existsSync(VENDOR_RECEIPTS_FILE)) {
+      const defaultData = { receipts: [], nextId: 1 };
+      fs.writeFileSync(VENDOR_RECEIPTS_FILE, JSON.stringify(defaultData, null, 2));
+    }
+    return JSON.parse(fs.readFileSync(VENDOR_RECEIPTS_FILE, "utf-8"));
+  }
+
+  function writeVendorReceiptsData(data: any) {
+    fs.writeFileSync(VENDOR_RECEIPTS_FILE, JSON.stringify(data, null, 2));
+  }
+
+  async function getVendorFromUser(req: any) {
+    const userObj = (req as any).user;
+    if (!userObj || !userObj.id) return null;
+    const user = await storage.getUser(userObj.id);
+    if (!user || user.role !== 'vendor') return null;
+    const vendorsData = readVendorsData();
+    return vendorsData.vendors.find((v: any) => v.email === user.username) || null;
+  }
+
+  // Vendor Dashboard
+  app.get("/api/vendor/dashboard", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const poData = readPurchaseOrdersData();
+      const billsData = readBillsData();
+      const paymentsMadeData = readPaymentsMadeDataGlobal();
+
+      const vendorPOs = poData.purchaseOrders.filter((po: any) => po.vendorId === vendor.id || po.vendorName === vendor.displayName);
+      const vendorBills = billsData.bills.filter((b: any) => b.vendorId === vendor.id || b.vendorName === vendor.displayName);
+      const vendorPayments = paymentsMadeData.paymentsMade.filter((p: any) => p.vendorId === vendor.id || p.vendorName === vendor.displayName);
+
+      const pendingBills = vendorBills.filter((b: any) => b.status !== "Paid" && b.status !== "PAID").length;
+      const outstandingAmount = vendorBills.reduce((sum: number, b: any) => sum + (b.balanceDue || b.total || 0), 0);
+      const paidAmount = vendorPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+
+      const recentActivities: any[] = [];
+      vendorPOs.slice(-5).forEach((po: any) => {
+        recentActivities.push({
+          id: `po-${po.id}`,
+          type: "purchase_order",
+          description: `Purchase Order ${po.purchaseOrderNumber || po.id} - ${po.status || "Draft"}`,
+          date: po.date || po.createdAt || new Date().toISOString(),
+          amount: po.total || 0,
+        });
+      });
+      vendorPayments.slice(-5).forEach((p: any) => {
+        recentActivities.push({
+          id: `pay-${p.id}`,
+          type: "payment",
+          description: `Payment ${p.paymentNumber || p.id} received`,
+          date: p.date || p.createdAt || new Date().toISOString(),
+          amount: p.amount || 0,
+        });
+      });
+      recentActivities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      res.json({
+        success: true,
+        data: {
+          totalPurchaseOrders: vendorPOs.length,
+          pendingBills,
+          outstandingAmount,
+          paidAmount,
+          recentActivities: recentActivities.slice(0, 10),
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to load dashboard" });
+    }
+  });
+
+  // Vendor Profile
+  app.get("/api/vendor/profile", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const poData = readPurchaseOrdersData();
+      const billsData = readBillsData();
+      const paymentsMadeData = readPaymentsMadeDataGlobal();
+
+      const vendorPOs = poData.purchaseOrders.filter((po: any) => po.vendorId === vendor.id || po.vendorName === vendor.displayName);
+      const vendorBills = billsData.bills.filter((b: any) => b.vendorId === vendor.id || b.vendorName === vendor.displayName);
+      const vendorPayments = paymentsMadeData.paymentsMade.filter((p: any) => p.vendorId === vendor.id || p.vendorName === vendor.displayName);
+
+      res.json({
+        success: true,
+        data: {
+          vendor,
+          transactions: {
+            purchaseOrders: vendorPOs,
+            bills: vendorBills,
+            payments: vendorPayments,
+          },
+          comments: vendor.comments || [],
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to load profile" });
+    }
+  });
+
+  // Vendor Profile Comments
+  app.post("/api/vendor/profile/comments", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const vendorsData = readVendorsData();
+      const vendorIndex = vendorsData.vendors.findIndex((v: any) => v.id === vendor.id);
+      if (vendorIndex === -1) return res.status(404).json({ success: false, message: "Vendor not found" });
+
+      const comment = {
+        id: `comment-${Date.now()}`,
+        content: req.body.content,
+        author: vendor.displayName || "Vendor",
+        date: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      if (!vendorsData.vendors[vendorIndex].comments) {
+        vendorsData.vendors[vendorIndex].comments = [];
+      }
+      vendorsData.vendors[vendorIndex].comments.unshift(comment);
+      writeVendorsData(vendorsData);
+
+      res.json({ success: true, data: comment });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to add comment" });
+    }
+  });
+
+  // Vendor Purchase Orders - list
+  app.get("/api/vendor/purchase-orders", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const poData = readPurchaseOrdersData();
+      const vendorPOs = poData.purchaseOrders.filter((po: any) => po.vendorId === vendor.id || po.vendorName === vendor.displayName);
+
+      res.json({ success: true, data: vendorPOs });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to load purchase orders" });
+    }
+  });
+
+  // Vendor Accept PO
+  app.patch("/api/vendor/purchase-orders/:id/accept", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const poData = readPurchaseOrdersData();
+      const poIndex = poData.purchaseOrders.findIndex((po: any) => po.id === req.params.id);
+      if (poIndex === -1) return res.status(404).json({ success: false, message: "Purchase order not found" });
+
+      poData.purchaseOrders[poIndex].status = "Accepted";
+      poData.purchaseOrders[poIndex].acceptedAt = new Date().toISOString();
+      poData.purchaseOrders[poIndex].acceptedBy = vendor.displayName;
+      writePurchaseOrdersData(poData);
+
+      res.json({ success: true, data: poData.purchaseOrders[poIndex] });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to accept purchase order" });
+    }
+  });
+
+  // Vendor Reject PO
+  app.patch("/api/vendor/purchase-orders/:id/reject", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const poData = readPurchaseOrdersData();
+      const poIndex = poData.purchaseOrders.findIndex((po: any) => po.id === req.params.id);
+      if (poIndex === -1) return res.status(404).json({ success: false, message: "Purchase order not found" });
+
+      poData.purchaseOrders[poIndex].status = "Rejected";
+      poData.purchaseOrders[poIndex].rejectedAt = new Date().toISOString();
+      poData.purchaseOrders[poIndex].rejectedBy = vendor.displayName;
+      poData.purchaseOrders[poIndex].rejectionReason = req.body.reason || "";
+      writePurchaseOrdersData(poData);
+
+      res.json({ success: true, data: poData.purchaseOrders[poIndex] });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to reject purchase order" });
+    }
+  });
+
+  // Vendor Bills - list
+  app.get("/api/vendor/bills", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const billsData = readBillsData();
+      const vendorBills = billsData.bills.filter((b: any) => b.vendorId === vendor.id || b.vendorName === vendor.displayName);
+
+      res.json({ success: true, data: vendorBills });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to load bills" });
+    }
+  });
+
+  // Vendor Create Bill
+  app.post("/api/vendor/bills", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const billsData = readBillsData();
+      const newBill = {
+        id: String(Date.now()),
+        vendorId: vendor.id,
+        vendorName: vendor.displayName || vendor.companyName,
+        ...req.body,
+        status: "Pending Approval",
+        createdBy: "vendor",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      billsData.bills.push(newBill);
+      writeBillsData(billsData);
+
+      res.status(201).json({ success: true, data: newBill });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to create bill" });
+    }
+  });
+
+  // Vendor Resubmit Bill
+  app.patch("/api/vendor/bills/:id/resubmit", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const billsData = readBillsData();
+      const billIndex = billsData.bills.findIndex((b: any) => b.id === req.params.id);
+      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
+
+      billsData.bills[billIndex].status = "Pending Approval";
+      billsData.bills[billIndex].rejectionReason = null;
+      billsData.bills[billIndex].updatedAt = new Date().toISOString();
+      writeBillsData(billsData);
+
+      res.json({ success: true, data: billsData.bills[billIndex] });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to resubmit bill" });
+    }
+  });
+
+  // Vendor Payments - list
+  app.get("/api/vendor/payments", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const paymentsMadeData = readPaymentsMadeDataGlobal();
+      let vendorPayments = paymentsMadeData.paymentsMade.filter((p: any) => p.vendorId === vendor.id || p.vendorName === vendor.displayName);
+
+      if (req.query.status) {
+        vendorPayments = vendorPayments.filter((p: any) => (p.vendorStatus || p.status) === req.query.status);
+      }
+
+      res.json({ success: true, data: vendorPayments });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to load payments" });
+    }
+  });
+
+  // Vendor Confirm Payment
+  app.patch("/api/vendor/payments/:id/confirm", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const paymentsMadeData = readPaymentsMadeDataGlobal();
+      const paymentIndex = paymentsMadeData.paymentsMade.findIndex((p: any) => p.id === req.params.id);
+      if (paymentIndex === -1) return res.status(404).json({ success: false, message: "Payment not found" });
+
+      paymentsMadeData.paymentsMade[paymentIndex].vendorStatus = "Confirmed";
+      paymentsMadeData.paymentsMade[paymentIndex].confirmedAt = new Date().toISOString();
+      paymentsMadeData.paymentsMade[paymentIndex].confirmedBy = vendor.displayName;
+
+      // Update bill status if applicable
+      const payment = paymentsMadeData.paymentsMade[paymentIndex];
+      if (payment.billId || payment.bills?.length > 0) {
+        const billsData = readBillsData();
+        const billId = payment.billId || payment.bills?.[0]?.billId;
+        const billIndex = billsData.bills.findIndex((b: any) => b.id === billId);
+        if (billIndex !== -1) {
+          const bill = billsData.bills[billIndex];
+          const newPaidAmount = (bill.amountPaid || 0) + (payment.amount || 0);
+          bill.amountPaid = newPaidAmount;
+          bill.balanceDue = (bill.total || 0) - newPaidAmount;
+          if (bill.balanceDue <= 0) {
+            bill.status = "Paid";
+            bill.balanceDue = 0;
+          } else {
+            bill.status = "Partially Paid";
+          }
+          writeBillsData(billsData);
+        }
+      }
+
+      writePaymentsMadeDataGlobal(paymentsMadeData);
+      res.json({ success: true, data: paymentsMadeData.paymentsMade[paymentIndex] });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to confirm payment" });
+    }
+  });
+
+  // Vendor Dispute Payment
+  app.patch("/api/vendor/payments/:id/dispute", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const paymentsMadeData = readPaymentsMadeDataGlobal();
+      const paymentIndex = paymentsMadeData.paymentsMade.findIndex((p: any) => p.id === req.params.id);
+      if (paymentIndex === -1) return res.status(404).json({ success: false, message: "Payment not found" });
+
+      paymentsMadeData.paymentsMade[paymentIndex].vendorStatus = "Disputed";
+      paymentsMadeData.paymentsMade[paymentIndex].disputeReason = req.body.reason || "";
+      paymentsMadeData.paymentsMade[paymentIndex].disputedAt = new Date().toISOString();
+      paymentsMadeData.paymentsMade[paymentIndex].disputedBy = vendor.displayName;
+      writePaymentsMadeDataGlobal(paymentsMadeData);
+
+      res.json({ success: true, data: paymentsMadeData.paymentsMade[paymentIndex] });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to dispute payment" });
+    }
+  });
+
+  // Vendor Receipts - list
+  app.get("/api/vendor/receipts", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const receiptsData = readVendorReceiptsData();
+      const vendorReceipts = receiptsData.receipts.filter((r: any) => r.vendorId === vendor.id);
+
+      res.json({ success: true, data: vendorReceipts });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to load receipts" });
+    }
+  });
+
+  // Vendor Generate Receipt
+  app.post("/api/vendor/receipts/generate", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const { paymentId } = req.body;
+      const paymentsMadeData = readPaymentsMadeDataGlobal();
+      const payment = paymentsMadeData.paymentsMade.find((p: any) => p.id === paymentId);
+      if (!payment) return res.status(404).json({ success: false, message: "Payment not found" });
+
+      const receiptsData = readVendorReceiptsData();
+      const receiptNumber = `VREC-${String(receiptsData.nextId || 1).padStart(5, "0")}`;
+      const receipt = {
+        id: String(receiptsData.nextId || 1),
+        receiptNumber,
+        vendorId: vendor.id,
+        vendorName: vendor.displayName || vendor.companyName,
+        paymentId: payment.id,
+        paymentNumber: payment.paymentNumber || payment.id,
+        amount: payment.amount || 0,
+        date: new Date().toISOString(),
+        status: "Generated",
+        createdAt: new Date().toISOString(),
+      };
+
+      receiptsData.receipts.push(receipt);
+      receiptsData.nextId = (receiptsData.nextId || 1) + 1;
+      writeVendorReceiptsData(receiptsData);
+
+      res.status(201).json({ success: true, data: receipt });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to generate receipt" });
+    }
+  });
+
+  // Vendor Send Receipt to Admin
+  app.post("/api/vendor/receipts/:id/send", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
+    try {
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
+
+      const receiptsData = readVendorReceiptsData();
+      const receiptIndex = receiptsData.receipts.findIndex((r: any) => r.id === req.params.id);
+      if (receiptIndex === -1) return res.status(404).json({ success: false, message: "Receipt not found" });
+
+      receiptsData.receipts[receiptIndex].status = "Sent to Admin";
+      receiptsData.receipts[receiptIndex].sentAt = new Date().toISOString();
+      writeVendorReceiptsData(receiptsData);
+
+      res.json({ success: true, data: receiptsData.receipts[receiptIndex] });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Failed to send receipt" });
     }
   });
 

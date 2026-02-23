@@ -1,6 +1,54 @@
 {
   "salesOrders": [
     {
+      "id": "1771824309532",
+      "salesOrderNumber": "SO-000005",
+      "date": "2026-02-23T05:25:09.532Z",
+      "customerId": "2",
+      "customerName": "Mr. Ganesh K",
+      "orderStatus": "CLOSED",
+      "invoiceStatus": "Invoiced",
+      "paymentStatus": "Unpaid",
+      "shipmentStatus": "Pending",
+      "items": [
+        {
+          "id": "1",
+          "name": "Laptop",
+          "description": "",
+          "quantity": 1,
+          "rate": 15000,
+          "amount": 15000,
+          "unit": "set",
+          "ordered": 1,
+          "invoicedQty": 1,
+          "invoiceStatus": "Invoiced"
+        }
+      ],
+      "subTotal": 15000,
+      "total": 15000,
+      "createdAt": "2026-02-23T05:25:09.532Z",
+      "invoices": [
+        {
+          "id": "1771824422675",
+          "invoiceNumber": "INV-00024",
+          "date": "2026-02-23",
+          "dueDate": "2026-02-23",
+          "status": "Draft",
+          "amount": 15000
+        }
+      ],
+      "updatedAt": "2026-02-23T05:27:02.673Z",
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-23T05:27:02.673Z",
+          "action": "invoiced",
+          "description": "Invoice INV-00024 created",
+          "user": "Admin User"
+        }
+      ]
+    },
+    {
       "id": "1771475184444",
       "salesOrderNumber": "SO-000004",
       "date": "2026-02-19T04:26:24.444Z",
@@ -221,6 +269,6 @@
       ]
     }
   ],
-  "nextSalesOrderNumber": 5,
+  "nextSalesOrderNumber": 6,
   "nextInvoiceNumber": 26
 }

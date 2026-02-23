@@ -330,6 +330,19 @@
       "customBody": "<p>Dear Mr. Ganesh K,</p><p>Please find the Quotation QT-000030 for your review.</p>",
       "sendMode": "immediate",
       "createdAt": "2026-02-23T04:52:39.416Z"
+    },
+    {
+      "id": "d7322223-3eb4-49b0-b1a4-51d62b649b72",
+      "transactionType": "sales_order",
+      "transactionId": "1771824309532",
+      "customerId": "2",
+      "recipients": [
+        "ganeshkale5491@gmail.com"
+      ],
+      "customSubject": "Sales Order SO-000005 from Cybaem Tech",
+      "customBody": "<p>Dear Mr. Ganesh K,</p><p>Please find the Sales Order SO-000005 for your review.</p>",
+      "sendMode": "immediate",
+      "createdAt": "2026-02-23T05:25:24.070Z"
     }
   ]
 }
