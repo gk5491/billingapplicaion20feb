@@ -927,7 +927,7 @@ export default function VendorPurchaseOrdersPage() {
                 onClose={handleClosePanel}
                 onAccept={handleAccept}
                 onReject={() => setShowRejectDialog(true)}
-                onConvertToBill={() => setLocation(`/vendor/bills/new?purchaseOrderId=${selectedPO.id}`)}
+                onConvertToBill={onConvertToBill}
                 isProcessing={isProcessing}
                 branding={branding}
                 organization={organization || undefined}

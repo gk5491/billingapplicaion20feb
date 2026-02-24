@@ -496,20 +496,21 @@ function VendorBillDetailPanel({
     }
   };
 
-  const canEdit = bill.status === "DRAFT" || bill.status === "Pending Approval" || bill.status === "REJECTED" || bill.status === "Rejected";
-  const canResubmit = bill.status === "Rejected";
-  const canSubmitToAdmin = bill.status === "DRAFT" || bill.status === "PENDING" || bill.status === "Pending Approval";
-  const isRejected = bill.status === "REJECTED" || bill.status === "Rejected";
+  const handleEdit = () => {
+    if (!bill) return;
+    setBillForm({
+      purchaseOrderId: bill.purchaseOrderId || "",
+      billNumber: bill.billNumber,
+      billDate: bill.billDate ? bill.billDate.split("T")[0] : "",
+      dueDate: bill.dueDate ? bill.dueDate.split("T")[0] : "",
+      referenceNumber: bill.referenceNumber || "",
+      notes: bill.notes || "",
+      terms: bill.terms || "",
+      items: bill.items && bill.items.length > 0 ? bill.items : [{ name: "", description: "", hsnSac: "", quantity: 1, rate: 0, taxCode: "", taxAmount: 0, amount: 0 }],
+    });
+    setShowEditDialog(true);
+  };
 
-  const handleDownloadPDF = async () => {
-    toast({ title: "Preparing download...", description: "Please wait while we generate your PDF." });
-    if (!showPdfView) {
-      setShowPdfView(true);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    }
-    try {
-      await generatePDFFromElement("vendor-bill-pdf-content", `${bill.billNumber}.pdf`);
-      toast({ title: "Success", description: "Bill downloaded successfully." });
     } catch (error) {
       console.error("PDF generation error:", error);
       toast({ title: "Error", description: "Failed to generate PDF.", variant: "destructive" });
@@ -566,7 +567,7 @@ function VendorBillDetailPanel({
         {canEdit && (
           <>
             <div className="w-px h-4 bg-slate-200 mx-1" />
-            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs font-semibold text-slate-600" onClick={onEdit} data-testid="button-edit-bill">
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs font-semibold text-slate-600" onClick={handleEdit} data-testid="button-edit-bill">
               <Pencil className="h-3.5 w-3.5" />
               Edit
             </Button>
@@ -934,6 +935,18 @@ export default function VendorBillsPage() {
       console.error("Failed to fetch purchase orders:", err);
     }
   };
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const convertPoId = searchParams.get("convertPoId");
+    if (convertPoId && purchaseOrders.length > 0) {
+      const po = purchaseOrders.find(p => p.id === convertPoId);
+      if (po) {
+        handlePOChange(convertPoId);
+        setShowCreateDialog(true);
+      }
+    }
+  }, [purchaseOrders, window.location.search]);
 
   const fetchBranding = async () => {
     try {

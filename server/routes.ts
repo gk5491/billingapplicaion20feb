@@ -10281,40 +10281,24 @@ export async function registerRoutes(
         user: "Vendor"
       });
 
+      // Also update the payment in paymentsReceived.json if it exists
+      try {
+        const paymentsData = readPaymentsReceivedData();
+        const payment = paymentsData.paymentsReceived.find((p: any) => p.billId === bill.id || p.referenceNumber === bill.billNumber);
+        if (payment) {
+          payment.paymentReceiptStatus = bill.paymentReceiptStatus;
+          writePaymentsReceivedData(paymentsData);
+        }
+      } catch (err) {
+        console.error("Error updating payment receipt status in paymentsReceived:", err);
+      }
+
       data.bills[billIndex] = bill;
       writeBillsData(data);
       res.json({ success: true, data: bill });
     } catch (error) {
+      console.error("Error updating receipt status:", error);
       res.status(500).json({ success: false, message: "Failed to update receipt status" });
-    }
-  });
-
-  // Payment Receipt logic (Simplified for JSON storage)
-  app.post("/api/vendor/payments/:id/receipt", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
-    try {
-      const { status } = req.body;
-      const data = readBillsData();
-      const billIndex = data.bills.findIndex((b: any) => b.id === req.params.id);
-      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
-
-      const bill = data.bills[billIndex];
-      bill.paymentReceiptStatus = status || "Verified";
-      bill.updatedAt = new Date().toISOString();
-
-      if (!bill.activityLogs) bill.activityLogs = [];
-      bill.activityLogs.push({
-        id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        action: "receipt_sent",
-        description: `Payment receipt sent by vendor (Status: ${bill.paymentReceiptStatus})`,
-        user: "Vendor"
-      });
-
-      data.bills[billIndex] = bill;
-      writeBillsData(data);
-      res.json({ success: true, data: bill });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Failed to send receipt" });
     }
   });
 

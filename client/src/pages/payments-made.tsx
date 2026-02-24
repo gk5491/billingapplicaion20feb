@@ -702,14 +702,31 @@ export default function PaymentsMade() {
   };
 
   const handleDownloadPDF = async () => {
-    toast({ title: "Preparing download...", description: "Please wait while we generate your PDF." });
     if (!selectedPayment) return;
 
+    // Check if receipt is verified
+    const isVerified = selectedPayment.paymentReceiptStatus === "Verified" || selectedPayment.paymentReceiptStatus === "Paid";
+    if (!isVerified) {
+      toast({ 
+        title: "Receipt Not Available", 
+        description: "Vendor has not yet verified the payment receipt. Please check back later.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({ title: "Preparing download...", description: "Please wait while we generate your PDF." });
+    if (!showPdfView) {
+      setShowPdfView(true);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
     const element = document.getElementById('payment-receipt-content');
     if (!element) return;
 
     try {
+      // @ts-ignore
       const html2canvas = (await import('html2canvas')).default;
+      // @ts-ignore
       const { jsPDF } = await import('jspdf');
 
       // Create a style element for polyfills to remove oklch variables site-wide
