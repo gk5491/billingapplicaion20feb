@@ -11,9 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -51,6 +48,7 @@ interface VendorItem {
   type: string;
   hsnSac: string;
   usageUnit: string;
+  unit: string;
   rate: string;
   purchaseRate: string;
   description: string;
@@ -61,16 +59,15 @@ interface VendorItem {
   interStateTax: string;
   salesAccount: string;
   purchaseAccount: string;
+  incomeAccount: string;
+  expenseAccount: string;
   availableQuantity: number;
+  trackInventory: boolean;
+  inventoryAccount: string;
+  reorderPoint: number;
+  taxable: boolean;
   isActive: boolean;
   sku?: string;
-  unit?: string;
-  taxable?: boolean;
-  incomeAccount?: string;
-  expenseAccount?: string;
-  trackInventory?: boolean;
-  inventoryAccount?: string;
-  reorderPoint?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -113,7 +110,6 @@ export default function VendorItemsPage() {
   const [sortBy, setSortBy] = useState<string>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<VendorItem | null>(null);
   const [formData, setFormData] = useState(emptyForm);
@@ -146,10 +142,15 @@ export default function VendorItemsPage() {
       const response = await fetch(`/api/vendor/items?${params.toString()}`, { headers });
       const result = await response.json();
       if (result.success) {
-        setItems(result.data);
-        setTotalItems(result.total || result.data.length);
+        const itemsData = Array.isArray(result.data) ? result.data : (result.data?.items || []);
+        setItems(itemsData);
+        setTotalItems(result.total || result.data?.total || itemsData.length);
+      } else {
+        setItems([]);
       }
     } catch (error) {
+      console.error("Failed to fetch vendor items:", error);
+      setItems([]);
       toast({
         title: "Error",
         description: "Failed to fetch items",
@@ -317,7 +318,7 @@ export default function VendorItemsPage() {
         <div className="flex justify-center items-center h-64">
           <RefreshCw className="h-8 w-8 animate-spin text-sidebar" />
         </div>
-      ) : items.length === 0 ? (
+      ) : !Array.isArray(items) || items.length === 0 ? (
         <div className="text-center py-20 bg-slate-50 rounded-lg border-2 border-dashed">
           <p className="text-slate-500">No items found matching your criteria.</p>
           <Button
@@ -390,7 +391,6 @@ export default function VendorItemsPage() {
                         <DropdownMenuItem onClick={() => toggleItemStatus(item)} data-testid={`menu-status-${item.id}`}>
                           Mark as {item.isActive ? "Inactive" : "Active"}
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-600"
                           onClick={() => {
@@ -446,7 +446,6 @@ export default function VendorItemsPage() {
           </DialogHeader>
           
           <div className="grid gap-6 py-4">
-            {/* Basic Information */}
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -502,7 +501,6 @@ export default function VendorItemsPage() {
               </div>
             </div>
 
-            {/* Sales Information */}
             <div className="space-y-4 pt-4 border-t">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-sm text-sidebar uppercase tracking-wider">Sales Information</h4>
@@ -554,7 +552,6 @@ export default function VendorItemsPage() {
               </div>
             </div>
 
-            {/* Purchase Information */}
             <div className="space-y-4 pt-4 border-t">
               <h4 className="font-bold text-sm text-sidebar uppercase tracking-wider">Purchase Information</h4>
               <div className="grid grid-cols-2 gap-4">
@@ -596,7 +593,6 @@ export default function VendorItemsPage() {
               </div>
             </div>
 
-            {/* Inventory Tracking */}
             <div className="space-y-4 pt-4 border-t">
               <div className="flex items-center space-x-2">
                 <Checkbox 
@@ -647,7 +643,6 @@ export default function VendorItemsPage() {
               )}
             </div>
 
-            {/* Tax Information */}
             <div className="space-y-4 pt-4 border-t">
               <h4 className="font-bold text-sm text-sidebar uppercase tracking-wider">Tax Information</h4>
               <div className="grid grid-cols-2 gap-4">

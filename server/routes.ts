@@ -10502,6 +10502,9 @@ export async function registerRoutes(
         id: Date.now().toString(),
         vendorId: vendor.id,
         availableQuantity: Number(req.body.availableQuantity) || 0,
+        reorderPoint: Number(req.body.reorderPoint) || 0,
+        rate: String(req.body.rate || "0"),
+        purchaseRate: String(req.body.purchaseRate || "0"),
         isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
