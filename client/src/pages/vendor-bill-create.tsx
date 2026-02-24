@@ -1127,6 +1127,14 @@ export default function VendorBillCreate() {
                       >
                         Send to Customer (Admin)
                       </Button>
+                      <Button 
+                        type="button"
+                        className="w-full text-xs font-bold uppercase tracking-wider bg-sidebar hover:bg-sidebar/90"
+                        onClick={() => handleSubmit("DRAFT")}
+                        disabled={isSubmitting}
+                      >
+                        Save as Draft
+                      </Button>
                     </div>
                   </div>
                 </div>

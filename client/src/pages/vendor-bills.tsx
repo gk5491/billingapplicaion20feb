@@ -1329,6 +1329,7 @@ export default function VendorBillsPage() {
                               <th className="px-4 py-3 text-left text-[11px] font-bold text-sidebar/70 uppercase tracking-wider">Due Date</th>
                               <th className="px-4 py-3 text-left text-[11px] font-bold text-sidebar/70 uppercase tracking-wider">Vendor</th>
                               <th className="px-4 py-3 text-left text-[11px] font-bold text-sidebar/70 uppercase tracking-wider">Status</th>
+                              <th className="px-4 py-3 text-left text-[11px] font-bold text-sidebar/70 uppercase tracking-wider">Receipt</th>
                               <th className="px-4 py-3 text-right text-[11px] font-bold text-sidebar/70 uppercase tracking-wider">Amount</th>
                             </tr>
                           </thead>
