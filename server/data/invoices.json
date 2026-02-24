@@ -1,6 +1,75 @@
 {
   "invoices": [
     {
+      "id": "1771909918541",
+      "invoiceNumber": "INV-00025",
+      "referenceNumber": "",
+      "date": "2026-02-24",
+      "dueDate": "2026-03-26",
+      "customerId": "2",
+      "customerName": "Mr. Ganesh K",
+      "billingAddress": {
+        "street": "Guruji chowwk, near demart",
+        "city": "Nanded",
+        "state": "MH",
+        "country": "India",
+        "pincode": "431892",
+        "attention": "",
+        "phone": "",
+        "fax": ""
+      },
+      "shippingAddress": {
+        "street": "Guruji chowwk, near demart",
+        "city": "Nanded",
+        "state": "MH",
+        "country": "India",
+        "pincode": "431892",
+        "attention": "",
+        "phone": "",
+        "fax": ""
+      },
+      "paymentTerms": "Net 30",
+      "items": [
+        {
+          "id": "1",
+          "name": "Laptop",
+          "description": "",
+          "quantity": 1,
+          "rate": 15000,
+          "amount": 15000,
+          "unit": "set"
+        }
+      ],
+      "subTotal": 15000,
+      "total": 15000,
+      "amountPaid": 0,
+      "balanceDue": 15000,
+      "status": "Sent",
+      "sourceType": "quote",
+      "sourceId": "31",
+      "sourceNumber": "QT-000031",
+      "createdAt": "2026-02-24T05:11:58.541Z",
+      "updatedAt": "2026-02-24T05:12:06.316Z",
+      "createdBy": "Admin User",
+      "payments": [],
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-24T05:11:58.541Z",
+          "action": "created",
+          "description": "Invoice created from Quote QT-000031",
+          "user": "Admin User"
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-02-24T05:12:06.316Z",
+          "action": "sent",
+          "description": "Invoice has been sent",
+          "user": "Admin User"
+        }
+      ]
+    },
+    {
       "id": "1771824422675",
       "organizationId": "1",
       "invoiceNumber": "INV-00024",
@@ -1915,5 +1984,5 @@
       ]
     }
   ],
-  "nextInvoiceNumber": 25
+  "nextInvoiceNumber": 26
 }

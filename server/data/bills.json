@@ -52,7 +52,7 @@
       "status": "PAID",
       "pdfTemplate": "Standard Template",
       "createdAt": "2026-02-23T07:18:58.042Z",
-      "updatedAt": "2026-02-23T08:47:07.117Z",
+      "updatedAt": "2026-02-24T05:01:31.729Z",
       "createdBy": "Admin User",
       "activityLogs": [
         {
@@ -82,6 +82,13 @@
           "action": "payment",
           "description": "Payment of ₹1,60,000 recorded",
           "user": "Admin User"
+        },
+        {
+          "id": "1771909291729",
+          "timestamp": "2026-02-24T05:01:31.729Z",
+          "action": "receipt_sent",
+          "description": "Payment receipt sent by vendor (Status: Verified)",
+          "user": "Vendor"
         }
       ],
       "tcsType": "TCS",
@@ -106,7 +113,8 @@
           "mode": "Cash"
         }
       ],
-      "creditsApplied": []
+      "creditsApplied": [],
+      "paymentReceiptStatus": "Verified"
     },
     {
       "id": "1770791906254",
@@ -153,14 +161,14 @@
       "adjustment": 0,
       "adjustmentDescription": "",
       "total": 20060,
-      "amountPaid": 60,
-      "balanceDue": 20000,
+      "amountPaid": 2060,
+      "balanceDue": 18000,
       "notes": "",
       "attachments": [],
       "status": "PARTIALLY_PAID",
       "pdfTemplate": "Standard Template",
       "createdAt": "2026-02-11T06:38:26.253Z",
-      "updatedAt": "2026-02-11T06:38:56.219Z",
+      "updatedAt": "2026-02-24T05:02:54.403Z",
       "createdBy": "Admin User",
       "activityLogs": [
         {
@@ -190,6 +198,13 @@
           "action": "credit_applied",
           "description": "Vendor Credit VC-00025 applied: ₹0",
           "user": "Admin User"
+        },
+        {
+          "id": "5",
+          "timestamp": "2026-02-24T05:02:54.403Z",
+          "action": "payment",
+          "description": "Payment of ₹2,000 recorded",
+          "user": "Admin User"
         }
       ],
       "tcsType": "TCS",
@@ -204,6 +219,13 @@
           "paymentNumber": "PM-00087",
           "amount": 60,
           "date": "2026-02-11",
+          "mode": "Cash"
+        },
+        {
+          "paymentId": "direct-1771909374403",
+          "paymentNumber": "PM-00090",
+          "amount": 2000,
+          "date": "2026-02-24",
           "mode": "Cash"
         }
       ],

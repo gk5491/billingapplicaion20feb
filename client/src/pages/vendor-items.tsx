@@ -1,5 +1,5 @@
 import { useState, useEffect, type MouseEvent } from "react";
-import { Plus, MoreHorizontal, ChevronDown, ArrowUpDown, RefreshCw, Search, X } from "lucide-react";
+import { Plus, MoreHorizontal, ChevronDown, ArrowUpDown, RefreshCw, Search, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,6 +63,14 @@ interface VendorItem {
   purchaseAccount: string;
   availableQuantity: number;
   isActive: boolean;
+  sku?: string;
+  unit?: string;
+  taxable?: boolean;
+  incomeAccount?: string;
+  expenseAccount?: string;
+  trackInventory?: boolean;
+  inventoryAccount?: string;
+  reorderPoint?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -70,19 +78,27 @@ interface VendorItem {
 const emptyForm = {
   name: "",
   type: "goods",
+  sku: "",
   hsnSac: "",
   usageUnit: "",
+  unit: "pcs",
   rate: "",
   purchaseRate: "",
   description: "",
   salesDescription: "",
   purchaseDescription: "",
   taxPreference: "taxable",
+  taxable: true,
   intraStateTax: "",
   interStateTax: "",
   salesAccount: "",
   purchaseAccount: "",
+  incomeAccount: "Sales",
+  expenseAccount: "Cost of Goods Sold",
   availableQuantity: 0,
+  trackInventory: false,
+  inventoryAccount: "Inventory Asset",
+  reorderPoint: 0,
 };
 
 export default function VendorItemsPage() {
@@ -122,146 +138,69 @@ export default function VendorItemsPage() {
       if (activeFilter === "Active") params.set("status", "active");
       if (activeFilter === "Inactive") params.set("status", "inactive");
       if (typeFilter !== "all") params.set("type", typeFilter);
+      params.set("sortBy", sortBy);
+      params.set("sortOrder", sortOrder);
       params.set("page", page.toString());
       params.set("limit", "50");
 
       const response = await fetch(`/api/vendor/items?${params.toString()}`, { headers });
-      if (response.ok) {
-        const result = await response.json();
-        setItems(result.data?.items || []);
-        setTotalItems(result.data?.total || 0);
+      const result = await response.json();
+      if (result.success) {
+        setItems(result.data);
+        setTotalItems(result.total || result.data.length);
       }
     } catch (error) {
-      console.error("Failed to fetch vendor items:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch items",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
-    }
-  };
-
-  const sortedItems = [...items].sort((a, b) => {
-    const fieldA = (a as any)[sortBy] || "";
-    const fieldB = (b as any)[sortBy] || "";
-    if (fieldA < fieldB) return sortOrder === "asc" ? -1 : 1;
-    if (fieldA > fieldB) return sortOrder === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  const toggleSelectAll = () => {
-    if (selectedItems.length === items.length) {
-      setSelectedItems([]);
-    } else {
-      setSelectedItems(items.map((item) => item.id));
-    }
-  };
-
-  const toggleSelectItem = (id: string, e: MouseEvent) => {
-    e.stopPropagation();
-    if (selectedItems.includes(id)) {
-      setSelectedItems(selectedItems.filter((i) => i !== id));
-    } else {
-      setSelectedItems([...selectedItems, id]);
-    }
-  };
-
-  const openAddDialog = () => {
-    setEditingItem(null);
-    setFormData(emptyForm);
-    setShowFormDialog(true);
-  };
-
-  const openEditDialog = (item: VendorItem) => {
-    setEditingItem(item);
-    setFormData({
-      name: item.name || "",
-      type: item.type || "goods",
-      hsnSac: item.hsnSac || "",
-      usageUnit: item.usageUnit || "",
-      rate: item.rate || "",
-      purchaseRate: item.purchaseRate || "",
-      description: item.description || "",
-      salesDescription: item.salesDescription || "",
-      purchaseDescription: item.purchaseDescription || "",
-      taxPreference: item.taxPreference || "taxable",
-      intraStateTax: item.intraStateTax || "",
-      interStateTax: item.interStateTax || "",
-      salesAccount: item.salesAccount || "",
-      purchaseAccount: item.purchaseAccount || "",
-      availableQuantity: item.availableQuantity ?? 0,
-    });
-    setShowFormDialog(true);
-  };
-
   const handleFormSubmit = async () => {
-    if (!formData.name.trim()) {
-      toast({ title: "Validation Error", description: "Item name is required.", variant: "destructive" });
-      return;
-    }
-    if (formData.availableQuantity < 0) {
-      toast({ title: "Validation Error", description: "Available quantity cannot be negative.", variant: "destructive" });
+    if (!formData.name) {
+      toast({
+        title: "Validation Error",
+        description: "Item name is required",
+        variant: "destructive",
+      });
       return;
     }
 
-    setFormSubmitting(true);
     try {
+      setFormSubmitting(true);
       const url = editingItem ? `/api/vendor/items/${editingItem.id}` : "/api/vendor/items";
       const method = editingItem ? "PUT" : "POST";
+
       const response = await fetch(url, {
         method,
         headers,
         body: JSON.stringify(formData),
       });
-      if (response.ok) {
+
+      const result = await response.json();
+      if (result.success) {
         toast({
-          title: editingItem ? "Item Updated" : "Item Created",
-          description: `"${formData.name}" has been ${editingItem ? "updated" : "created"} successfully.`,
+          title: "Success",
+          description: editingItem ? "Item updated successfully" : "Item created successfully",
         });
         setShowFormDialog(false);
-        setEditingItem(null);
-        setFormData(emptyForm);
         fetchItems();
       } else {
-        const err = await response.json();
-        throw new Error(err.message || "Failed to save item");
+        throw new Error(result.message);
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to save item.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save item",
+        variant: "destructive",
+      });
     } finally {
       setFormSubmitting(false);
     }
-  };
-
-  const handleToggleStatus = async (item: VendorItem) => {
-    try {
-      const response = await fetch(`/api/vendor/items/${item.id}/status`, {
-        method: "PATCH",
-        headers,
-      });
-      if (response.ok) {
-        toast({
-          title: item.isActive ? "Item Deactivated" : "Item Activated",
-          description: `"${item.name}" has been marked as ${item.isActive ? "inactive" : "active"}.`,
-        });
-        fetchItems();
-      } else {
-        throw new Error("Failed to toggle status");
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to update item status.", variant: "destructive" });
-    }
-  };
-
-  const handleDeleteItem = (item: VendorItem) => {
-    setItemToDelete(item);
-    setShowDeleteDialog(true);
   };
 
   const confirmDelete = async () => {
@@ -271,210 +210,166 @@ export default function VendorItemsPage() {
         method: "DELETE",
         headers,
       });
-      if (response.ok) {
-        toast({ title: "Item Deleted", description: `"${itemToDelete.name}" has been deleted.` });
-        setShowDeleteDialog(false);
-        setItemToDelete(null);
+      const result = await response.json();
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Item deleted successfully",
+        });
         fetchItems();
-      } else {
-        throw new Error("Failed to delete item");
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to delete item.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to delete item",
+        variant: "destructive",
+      });
+    } finally {
+      setShowDeleteDialog(false);
+      setItemToDelete(null);
+    }
+  };
+
+  const toggleItemStatus = async (item: VendorItem) => {
+    try {
+      const response = await fetch(`/api/vendor/items/${item.id}/status`, {
+        method: "PATCH",
+        headers,
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Item ${result.data.isActive ? "activated" : "deactivated"}`,
+        });
+        fetchItems();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-300 w-full overflow-hidden">
-      <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white sticky top-0 z-10 min-h-[73px] h-auto px-6">
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="flex items-center gap-2 text-lg font-bold text-sidebar hover:text-primary transition-colors text-left whitespace-normal font-display group"
-                data-testid="dropdown-filter-items"
-              >
-                <span className="line-clamp-2">{activeFilter} Items</span>
-                <ChevronDown className="h-4 w-4 text-sidebar/40 group-hover:text-primary shrink-0 transition-colors" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => { setActiveFilter("All"); setPage(1); }} data-testid="filter-all">
-                All
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setActiveFilter("Active"); setPage(1); }} data-testid="filter-active">
-                Active
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setActiveFilter("Inactive"); setPage(1); }} data-testid="filter-inactive">
-                Inactive
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { setTypeFilter("goods"); setPage(1); }} data-testid="filter-goods">
-                Goods
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setTypeFilter("service"); setPage(1); }} data-testid="filter-service">
-                Services
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setTypeFilter("all"); setPage(1); }} data-testid="filter-all-types">
-                All Types
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-sidebar">Items & Services</h1>
+          <p className="text-slate-500">Manage your products and services</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative hidden sm:block">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Button
+          onClick={() => {
+            setEditingItem(null);
+            setFormData(emptyForm);
+            setShowFormDialog(true);
+          }}
+          className="bg-sidebar hover:bg-sidebar/90 text-white"
+          data-testid="button-new-item"
+        >
+          <Plus className="mr-2 h-4 w-4" /> New Item
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
+        <div className="flex flex-1 min-w-[300px] items-center space-x-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Search items..."
+              placeholder="Search items by name or SKU..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              className="pl-9 w-48"
-              data-testid="input-search-items"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+              data-testid="input-search"
             />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2">
-                <X className="h-3.5 w-3.5 text-slate-400" />
-              </button>
-            )}
           </div>
-          <Button
-            onClick={openAddDialog}
-            className="bg-sidebar hover:bg-sidebar/90 text-white gap-1 sm:gap-1.5 font-display font-semibold transition-all shadow-sm"
-            data-testid="button-new-item"
-          >
-            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">New</span>
+          <Button variant="outline" size="icon" onClick={() => fetchItems()} data-testid="button-refresh">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" data-testid="button-more-options">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <ArrowUpDown className="mr-2 h-4 w-4" />
-                  Sort by
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem onClick={() => handleSort("name")}>Name</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSort("rate")}>Rate</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSort("availableQuantity")}>Available Qty</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSort("hsnSac")}>HSN/SAC</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSort("updatedAt")}>Last Modified</DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={fetchItems}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh List
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        </div>
+        <div className="flex gap-2">
+          <Select value={activeFilter} onValueChange={setActiveFilter}>
+            <SelectTrigger className="w-[130px]" data-testid="select-status-filter">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Status</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[130px]" data-testid="select-type-filter">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="goods">Goods</SelectItem>
+              <SelectItem value="service">Service</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto scrollbar-hide">
-        {loading ? (
-          <div className="p-8 text-center text-slate-500" data-testid="text-loading">Loading items...</div>
-        ) : items.length === 0 ? (
-          <div className="p-8 text-center text-slate-500" data-testid="text-empty">
-            <p>No items found.</p>
-            <Button
-              onClick={openAddDialog}
-              className="mt-4 bg-sidebar hover:bg-sidebar/90 font-display font-semibold transition-all shadow-sm"
-              data-testid="button-create-first-item"
-            >
-              <Plus className="h-4 w-4 mr-2" /> Create your first item
-            </Button>
-          </div>
-        ) : (
-          <table className="w-full text-sm table-fixed border-separate border-spacing-0" data-testid="table-vendor-items">
-            <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin text-sidebar" />
+        </div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-20 bg-slate-50 rounded-lg border-2 border-dashed">
+          <p className="text-slate-500">No items found matching your criteria.</p>
+          <Button
+            variant="link"
+            onClick={() => {
+              setFormData(emptyForm);
+              setShowFormDialog(true);
+            }}
+          >
+            Create your first item
+          </Button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 border-b text-slate-600 font-medium">
               <tr>
-                <th className="w-10 px-2 md:px-4 py-3 border-b text-center">
-                  <Checkbox
-                    checked={selectedItems.length === items.length && items.length > 0}
-                    onCheckedChange={toggleSelectAll}
-                    className="data-[state=checked]:bg-sidebar data-[state=checked]:border-sidebar border-slate-300"
-                    data-testid="checkbox-select-all"
-                  />
-                </th>
-                <th className="px-2 md:px-4 py-3 border-b text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider font-display">
-                  NAME
-                </th>
-                <th className="hidden md:table-cell px-2 md:px-4 py-3 border-b text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider font-display">
-                  TYPE
-                </th>
-                <th className="hidden lg:table-cell px-2 md:px-4 py-3 border-b text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider font-display">
-                  HSN/SAC
-                </th>
-                <th className="px-2 md:px-4 py-3 border-b text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider font-display">
-                  RATE
-                </th>
-                <th className="hidden md:table-cell px-2 md:px-4 py-3 border-b text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider font-display">
-                  AVAIL. QTY
-                </th>
-                <th className="hidden lg:table-cell px-2 md:px-4 py-3 border-b text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider font-display">
-                  STATUS
-                </th>
-                <th className="w-16 px-2 md:px-4 py-3 border-b text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider font-display">
-                  ACTIONS
-                </th>
+                <th className="px-4 py-3">NAME</th>
+                <th className="px-4 py-3">SKU</th>
+                <th className="px-4 py-3">TYPE</th>
+                <th className="px-4 py-3">HSN/SAC</th>
+                <th className="px-4 py-3">RATE</th>
+                <th className="px-4 py-3">STOCK</th>
+                <th className="px-4 py-3">STATUS</th>
+                <th className="px-4 py-3 text-right">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-slate-100">
-              {sortedItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-slate-50 cursor-pointer transition-colors group"
-                  onClick={() => openEditDialog(item)}
-                  data-testid={`row-item-${item.id}`}
-                >
-                  <td className="px-2 md:px-4 py-3 border-b border-slate-100 text-center">
-                    <Checkbox
-                      checked={selectedItems.includes(item.id)}
-                      onCheckedChange={() => {}}
-                      onClick={(e) => toggleSelectItem(item.id, e as MouseEvent)}
-                      className="data-[state=checked]:bg-sidebar data-[state=checked]:border-sidebar border-slate-300"
-                      data-testid={`checkbox-item-${item.id}`}
-                    />
+            <tbody className="divide-y">
+              {items.map((item) => (
+                <tr key={item.id} className="hover:bg-slate-50/50">
+                  <td className="px-4 py-3 font-medium text-sidebar">{item.name}</td>
+                  <td className="px-4 py-3 text-slate-500">{item.sku || "-"}</td>
+                  <td className="px-4 py-3 uppercase text-[10px] font-bold">
+                    <Badge variant="outline">{item.type}</Badge>
                   </td>
-                  <td className="px-2 md:px-4 py-3 border-b border-slate-100">
-                    <div className="text-sm font-medium text-sidebar group-hover:text-primary transition-colors truncate font-display" data-testid={`text-item-name-${item.id}`}>
-                      {item.name}
-                    </div>
+                  <td className="px-4 py-3 text-slate-500">{item.hsnSac || "-"}</td>
+                  <td className="px-4 py-3">₹{parseFloat(item.rate || "0").toFixed(2)}</td>
+                  <td className="px-4 py-3">
+                    {item.trackInventory ? (
+                      <span className={item.availableQuantity <= (item.reorderPoint || 0) ? "text-red-600 font-bold" : ""}>
+                        {item.availableQuantity} {item.unit}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Not tracked</span>
+                    )}
                   </td>
-                  <td className="hidden md:table-cell px-2 md:px-4 py-3 border-b border-slate-100">
-                    <div className="text-sm text-slate-600 capitalize" data-testid={`text-item-type-${item.id}`}>
-                      {item.type || "-"}
-                    </div>
-                  </td>
-                  <td className="hidden lg:table-cell px-2 md:px-4 py-3 border-b border-slate-100">
-                    <div className="text-sm text-slate-900 font-display" data-testid={`text-item-hsn-${item.id}`}>
-                      {item.hsnSac || "-"}
-                    </div>
-                  </td>
-                  <td className="px-2 md:px-4 py-3 text-right border-b border-slate-100">
-                    <div className="text-sm text-sidebar font-semibold font-display" data-testid={`text-item-rate-${item.id}`}>
-                      {item.rate ? `₹${item.rate}` : "₹0.00"}
-                    </div>
-                  </td>
-                  <td className="hidden md:table-cell px-2 md:px-4 py-3 text-right border-b border-slate-100">
-                    <div className="text-sm text-slate-900 font-display" data-testid={`text-item-qty-${item.id}`}>
-                      {item.availableQuantity ?? 0}
-                    </div>
-                  </td>
-                  <td className="hidden lg:table-cell px-2 md:px-4 py-3 border-b border-slate-100 text-center">
-                    <Badge
-                      variant={item.isActive !== false ? "default" : "secondary"}
-                      className={item.isActive !== false ? "bg-green-100 text-green-800 no-default-hover-elevate no-default-active-elevate" : "bg-slate-100 text-slate-600 no-default-hover-elevate no-default-active-elevate"}
-                      data-testid={`badge-status-${item.id}`}
-                    >
-                      {item.isActive !== false ? "Active" : "Inactive"}
+                  <td className="px-4 py-3">
+                    <Badge className={item.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-700"}>
+                      {item.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </td>
-                  <td className="px-2 md:px-4 py-3 border-b border-slate-100 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-4 py-3 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" data-testid={`button-actions-${item.id}`}>
@@ -482,17 +377,27 @@ export default function VendorItemsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditDialog(item)} data-testid={`action-edit-${item.id}`}>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingItem(item);
+                            setFormData({ ...emptyForm, ...item });
+                            setShowFormDialog(true);
+                          }}
+                          data-testid={`menu-edit-${item.id}`}
+                        >
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleStatus(item)} data-testid={`action-toggle-${item.id}`}>
-                          {item.isActive !== false ? "Mark Inactive" : "Mark Active"}
+                        <DropdownMenuItem onClick={() => toggleItemStatus(item)} data-testid={`menu-status-${item.id}`}>
+                          Mark as {item.isActive ? "Inactive" : "Active"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          onClick={() => handleDeleteItem(item)}
-                          className="text-red-600"
-                          data-testid={`action-delete-${item.id}`}
+                          className="text-red-600 focus:text-red-600"
+                          onClick={() => {
+                            setItemToDelete(item);
+                            setShowDeleteDialog(true);
+                          }}
+                          data-testid={`menu-delete-${item.id}`}
                         >
                           Delete
                         </DropdownMenuItem>
@@ -503,232 +408,282 @@ export default function VendorItemsPage() {
               ))}
             </tbody>
           </table>
-        )}
-      </div>
-
-      {totalItems > 50 && (
-        <div className="flex items-center justify-between px-6 py-3 border-t border-slate-200 bg-white">
-          <span className="text-sm text-slate-500" data-testid="text-pagination-info">
-            Showing {(page - 1) * 50 + 1}-{Math.min(page * 50, totalItems)} of {totalItems}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-              data-testid="button-prev-page"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page * 50 >= totalItems}
-              onClick={() => setPage(page + 1)}
-              data-testid="button-next-page"
-            >
-              Next
-            </Button>
+          <div className="px-4 py-3 bg-slate-50 border-t flex items-center justify-between">
+            <p className="text-xs text-slate-500">
+              Showing {items.length} of {totalItems} items
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+                data-testid="button-prev-page"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page * 50 >= totalItems}
+                onClick={() => setPage(page + 1)}
+                data-testid="button-next-page"
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
       <Dialog open={showFormDialog} onOpenChange={setShowFormDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle data-testid="text-form-title">{editingItem ? "Edit Item" : "New Item"}</DialogTitle>
             <DialogDescription>
               {editingItem ? "Update the item details below." : "Fill in the details to create a new item."}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Item name"
-                  data-testid="input-item-name"
-                />
+          
+          <div className="grid gap-6 py-4">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Item name"
+                    data-testid="input-item-name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sku">SKU</Label>
+                  <Input
+                    id="sku"
+                    value={formData.sku}
+                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                    placeholder="SKU"
+                    data-testid="input-item-sku"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="type">Type</Label>
-                <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })}>
-                  <SelectTrigger data-testid="select-item-type">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="goods">Goods</SelectItem>
-                    <SelectItem value="service">Service</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="hsnSac">HSN/SAC</Label>
-                <Input
-                  id="hsnSac"
-                  value={formData.hsnSac}
-                  onChange={(e) => setFormData({ ...formData, hsnSac: e.target.value })}
-                  placeholder="HSN/SAC code"
-                  data-testid="input-item-hsnsac"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="usageUnit">Usage Unit</Label>
-                <Input
-                  id="usageUnit"
-                  value={formData.usageUnit}
-                  onChange={(e) => setFormData({ ...formData, usageUnit: e.target.value })}
-                  placeholder="e.g., pcs, kg, hrs"
-                  data-testid="input-item-unit"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="rate">Selling Price / Rate</Label>
-                <Input
-                  id="rate"
-                  value={formData.rate}
-                  onChange={(e) => setFormData({ ...formData, rate: e.target.value })}
-                  placeholder="0.00"
-                  type="number"
-                  data-testid="input-item-rate"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="purchaseRate">Cost Price / Purchase Rate</Label>
-                <Input
-                  id="purchaseRate"
-                  value={formData.purchaseRate}
-                  onChange={(e) => setFormData({ ...formData, purchaseRate: e.target.value })}
-                  placeholder="0.00"
-                  type="number"
-                  data-testid="input-item-purchase-rate"
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="type">Type</Label>
+                  <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })}>
+                    <SelectTrigger data-testid="select-item-type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="goods">Goods</SelectItem>
+                      <SelectItem value="service">Service</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="unit">Unit</Label>
+                  <Select value={formData.unit} onValueChange={(val) => setFormData({ ...formData, unit: val })}>
+                    <SelectTrigger data-testid="select-item-unit">
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pcs">pcs</SelectItem>
+                      <SelectItem value="kg">kg</SelectItem>
+                      <SelectItem value="mtr">mtr</SelectItem>
+                      <SelectItem value="box">box</SelectItem>
+                      <SelectItem value="nos">nos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="availableQuantity">Available Quantity *</Label>
-              <Input
-                id="availableQuantity"
-                value={formData.availableQuantity}
-                onChange={(e) => setFormData({ ...formData, availableQuantity: Number(e.target.value) || 0 })}
-                placeholder="0"
-                type="number"
-                min="0"
-                data-testid="input-item-available-qty"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="General description"
-                rows={2}
-                data-testid="input-item-description"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Sales Information */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-sm text-sidebar uppercase tracking-wider">Sales Information</h4>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="taxable" 
+                    checked={formData.taxable}
+                    onCheckedChange={(checked) => setFormData({ ...formData, taxable: !!checked })}
+                  />
+                  <Label htmlFor="taxable" className="text-xs font-medium cursor-pointer">Taxable</Label>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rate">Selling Price (₹)</Label>
+                  <Input
+                    id="rate"
+                    type="number"
+                    value={formData.rate}
+                    onChange={(e) => setFormData({ ...formData, rate: e.target.value })}
+                    placeholder="0.00"
+                    data-testid="input-item-rate"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="incomeAccount">Account</Label>
+                  <Select value={formData.incomeAccount} onValueChange={(val) => setFormData({ ...formData, incomeAccount: val })}>
+                    <SelectTrigger data-testid="select-income-account">
+                      <SelectValue placeholder="Select account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Sales">Sales</SelectItem>
+                      <SelectItem value="Other Income">Other Income</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label htmlFor="salesDescription">Sales Description</Label>
+                <Label htmlFor="salesDescription">Description</Label>
                 <Textarea
                   id="salesDescription"
                   value={formData.salesDescription}
                   onChange={(e) => setFormData({ ...formData, salesDescription: e.target.value })}
-                  placeholder="Sales description"
-                  rows={2}
-                  data-testid="input-item-sales-desc"
+                  placeholder="Description for invoices"
+                  className="min-h-[80px]"
+                  data-testid="textarea-sales-description"
                 />
               </div>
+            </div>
+
+            {/* Purchase Information */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="font-bold text-sm text-sidebar uppercase tracking-wider">Purchase Information</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="purchaseRate">Cost Price (₹)</Label>
+                  <Input
+                    id="purchaseRate"
+                    type="number"
+                    value={formData.purchaseRate}
+                    onChange={(e) => setFormData({ ...formData, purchaseRate: e.target.value })}
+                    placeholder="0.00"
+                    data-testid="input-purchase-rate"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expenseAccount">Account</Label>
+                  <Select value={formData.expenseAccount} onValueChange={(val) => setFormData({ ...formData, expenseAccount: val })}>
+                    <SelectTrigger data-testid="select-expense-account">
+                      <SelectValue placeholder="Select account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Cost of Goods Sold">Cost of Goods Sold</SelectItem>
+                      <SelectItem value="Material Purchases">Material Purchases</SelectItem>
+                      <SelectItem value="Operating Expenses">Operating Expenses</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label htmlFor="purchaseDescription">Purchase Description</Label>
+                <Label htmlFor="purchaseDescription">Description</Label>
                 <Textarea
                   id="purchaseDescription"
                   value={formData.purchaseDescription}
                   onChange={(e) => setFormData({ ...formData, purchaseDescription: e.target.value })}
-                  placeholder="Purchase description"
-                  rows={2}
-                  data-testid="input-item-purchase-desc"
+                  placeholder="Description for bills"
+                  className="min-h-[80px]"
+                  data-testid="textarea-purchase-description"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="taxPreference">Tax Preference</Label>
-                <Select value={formData.taxPreference} onValueChange={(val) => setFormData({ ...formData, taxPreference: val })}>
-                  <SelectTrigger data-testid="select-tax-preference">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="taxable">Taxable</SelectItem>
-                    <SelectItem value="non-taxable">Non-Taxable</SelectItem>
-                    <SelectItem value="exempt">Exempt</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="intraStateTax">Intra-State Tax</Label>
-                <Input
-                  id="intraStateTax"
-                  value={formData.intraStateTax}
-                  onChange={(e) => setFormData({ ...formData, intraStateTax: e.target.value })}
-                  placeholder="e.g., GST18"
-                  data-testid="input-intra-tax"
+
+            {/* Inventory Tracking */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="trackInventory" 
+                  checked={formData.trackInventory}
+                  onCheckedChange={(checked) => setFormData({ ...formData, trackInventory: !!checked })}
+                  data-testid="checkbox-track-inventory"
                 />
+                <Label htmlFor="trackInventory" className="font-bold text-sm text-sidebar uppercase tracking-wider cursor-pointer">Track Inventory for this item</Label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="interStateTax">Inter-State Tax</Label>
-                <Input
-                  id="interStateTax"
-                  value={formData.interStateTax}
-                  onChange={(e) => setFormData({ ...formData, interStateTax: e.target.value })}
-                  placeholder="e.g., IGST18"
-                  data-testid="input-inter-tax"
-                />
-              </div>
+              
+              {formData.trackInventory && (
+                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="space-y-2">
+                    <Label htmlFor="inventoryAccount">Inventory Account</Label>
+                    <Select value={formData.inventoryAccount} onValueChange={(val) => setFormData({ ...formData, inventoryAccount: val })}>
+                      <SelectTrigger data-testid="select-inventory-account">
+                        <SelectValue placeholder="Select account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Inventory Asset">Inventory Asset</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reorderPoint">Reorder Point</Label>
+                    <Input
+                      id="reorderPoint"
+                      type="number"
+                      value={formData.reorderPoint}
+                      onChange={(e) => setFormData({ ...formData, reorderPoint: parseInt(e.target.value) || 0 })}
+                      placeholder="0"
+                      data-testid="input-reorder-point"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="availableQuantity">Opening Stock</Label>
+                    <Input
+                      id="availableQuantity"
+                      type="number"
+                      value={formData.availableQuantity}
+                      onChange={(e) => setFormData({ ...formData, availableQuantity: parseInt(e.target.value) || 0 })}
+                      placeholder="0"
+                      data-testid="input-opening-stock"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="salesAccount">Sales Account</Label>
-                <Input
-                  id="salesAccount"
-                  value={formData.salesAccount}
-                  onChange={(e) => setFormData({ ...formData, salesAccount: e.target.value })}
-                  placeholder="Sales account"
-                  data-testid="input-sales-account"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="purchaseAccount">Purchase Account</Label>
-                <Input
-                  id="purchaseAccount"
-                  value={formData.purchaseAccount}
-                  onChange={(e) => setFormData({ ...formData, purchaseAccount: e.target.value })}
-                  placeholder="Purchase account"
-                  data-testid="input-purchase-account"
-                />
+
+            {/* Tax Information */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="font-bold text-sm text-sidebar uppercase tracking-wider">Tax Information</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hsnSac">HSN/SAC</Label>
+                  <Input
+                    id="hsnSac"
+                    value={formData.hsnSac}
+                    onChange={(e) => setFormData({ ...formData, hsnSac: e.target.value })}
+                    placeholder="HSN/SAC code"
+                    data-testid="input-hsn-sac"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="taxPreference">Tax Preference</Label>
+                  <Select value={formData.taxPreference} onValueChange={(val) => setFormData({ ...formData, taxPreference: val })}>
+                    <SelectTrigger data-testid="select-tax-preference">
+                      <SelectValue placeholder="Select preference" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="taxable">Taxable</SelectItem>
+                      <SelectItem value="non-taxable">Non-Taxable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowFormDialog(false)} data-testid="button-cancel-form">
+
+          <DialogFooter className="sticky bottom-0 bg-white pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowFormDialog(false)} disabled={formSubmitting} data-testid="button-cancel">
               Cancel
             </Button>
-            <Button
-              onClick={handleFormSubmit}
-              disabled={formSubmitting}
-              className="bg-sidebar hover:bg-sidebar/90"
-              data-testid="button-save-item"
-            >
-              {formSubmitting ? "Saving..." : editingItem ? "Update Item" : "Create Item"}
+            <Button onClick={handleFormSubmit} disabled={formSubmitting} className="bg-sidebar hover:bg-sidebar/90 text-white min-w-[100px]" data-testid="button-save">
+              {formSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {editingItem ? "Update Item" : "Save Item"}
             </Button>
           </DialogFooter>
         </DialogContent>

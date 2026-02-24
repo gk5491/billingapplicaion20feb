@@ -156,6 +156,20 @@
       "recipient": "customer@example.com",
       "fromEmail": "ganesh.kale@cybaemtech.com",
       "sentAt": "2026-02-23T04:52:39.179Z"
+    },
+    {
+      "id": "jr4347xua",
+      "customerId": "2",
+      "transactionId": "31",
+      "transactionType": "quote",
+      "type": "manual",
+      "status": "failed",
+      "errorMessage": "SMTP Server Timeout",
+      "subject": "Quote QT-000031 from our company",
+      "body": "Please find the attached quote QT-000031 for your review.",
+      "recipient": "customer@example.com",
+      "fromEmail": "billing@example.com",
+      "sentAt": "2026-02-24T05:11:33.266Z"
     }
   ]
 }

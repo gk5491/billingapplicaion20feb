@@ -1,6 +1,81 @@
 {
   "purchaseOrders": [
     {
+      "id": "1771910312648",
+      "purchaseOrderNumber": "PO-2025-0010",
+      "referenceNumber": "",
+      "date": "2026-02-24",
+      "deliveryDate": "",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "vendorAddress": {
+        "street1": "Kalwadi Phata",
+        "street2": "PCMC",
+        "city": "Pune",
+        "state": "[MH] - Maharashtra",
+        "pinCode": "41106",
+        "countryRegion": "India"
+      },
+      "deliveryAddress": {
+        "attention": "",
+        "street1": "",
+        "street2": "",
+        "city": "",
+        "state": "",
+        "pinCode": "",
+        "countryRegion": "India"
+      },
+      "deliveryAddressType": "organization",
+      "paymentTerms": "Due on Receipt",
+      "shipmentPreference": "",
+      "reverseCharge": false,
+      "items": [
+        {
+          "id": "1",
+          "itemId": "1771395226932",
+          "itemName": "phone",
+          "description": "ajfa",
+          "account": "advance_tax",
+          "quantity": 1,
+          "rate": 25000,
+          "tax": "gst_18",
+          "taxAmount": 4500,
+          "amount": 29500
+        }
+      ],
+      "subTotal": 25000,
+      "discountType": "percent",
+      "discountValue": 0,
+      "discountAmount": 0,
+      "taxType": "TDS",
+      "taxCategory": "none",
+      "taxAmount": 4500,
+      "adjustment": 0,
+      "adjustmentDescription": "",
+      "total": 29500,
+      "notes": "",
+      "termsAndConditions": "",
+      "attachments": [],
+      "status": "Accepted",
+      "receiveStatus": "YET TO BE RECEIVED",
+      "billedStatus": "YET TO BE BILLED",
+      "pdfTemplate": "Standard Template",
+      "createdAt": "2026-02-24T05:18:32.648Z",
+      "updatedAt": "2026-02-24T05:18:32.648Z",
+      "createdBy": "Admin User",
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-24T05:18:32.648Z",
+          "action": "created",
+          "description": "Purchase Order created for ₹29,500",
+          "user": "Admin User"
+        }
+      ],
+      "acceptedAt": "2026-02-24T05:18:49.859Z",
+      "acceptedBy": "priyanka k"
+    },
+    {
       "id": "1771831091486",
       "purchaseOrderNumber": "PO-2025-0009",
       "referenceNumber": "",
@@ -517,5 +592,5 @@
       "balanceDue": 17700
     }
   ],
-  "nextPurchaseOrderNumber": 10
+  "nextPurchaseOrderNumber": 11
 }

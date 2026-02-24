@@ -10498,11 +10498,11 @@ export async function registerRoutes(
       if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
       const allItems = readVendorItems();
       const newItem = {
+        ...req.body,
         id: Date.now().toString(),
         vendorId: vendor.id,
-        ...req.body,
         availableQuantity: Number(req.body.availableQuantity) || 0,
-        isActive: req.body.isActive !== false,
+        isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };

@@ -352,7 +352,39 @@
       "status": "PAID",
       "createdAt": "2026-02-23T08:47:07.117Z",
       "updatedAt": "2026-02-23T08:47:07.117Z"
+    },
+    {
+      "id": "pm-1771909374404",
+      "paymentNumber": "PM-00090",
+      "vendorId": "3",
+      "vendorName": "Ganesh K",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 2000,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-24",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #16",
+      "billPayments": {
+        "1770791906254": {
+          "billId": "1770791906254",
+          "billNumber": "16",
+          "billAmount": 20060,
+          "amountPaid": 2000
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-24T05:02:54.403Z",
+      "updatedAt": "2026-02-24T05:02:54.403Z"
     }
   ],
-  "nextPaymentNumber": 90
+  "nextPaymentNumber": 91
 }

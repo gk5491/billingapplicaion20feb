@@ -1158,7 +1158,69 @@
         }
       ],
       "convertedTo": "invoice"
+    },
+    {
+      "id": "31",
+      "quoteNumber": "QT-000031",
+      "customerId": "2",
+      "customerName": "Mr. Ganesh K",
+      "billingAddress": {
+        "street": "Guruji chowwk, near demart",
+        "city": "Nanded",
+        "state": "MH",
+        "country": "India",
+        "pincode": "431892",
+        "attention": "",
+        "phone": "",
+        "fax": ""
+      },
+      "shippingAddress": {
+        "street": "Guruji chowwk, near demart",
+        "city": "Nanded",
+        "state": "MH",
+        "country": "India",
+        "pincode": "431892",
+        "attention": "",
+        "phone": "",
+        "fax": ""
+      },
+      "organizationId": "1",
+      "date": "2026-02-24T05:11:12.358Z",
+      "status": "Approved",
+      "items": [
+        {
+          "id": "1",
+          "name": "Laptop",
+          "description": "",
+          "quantity": 1,
+          "rate": 15000,
+          "amount": 15000,
+          "unit": "set"
+        }
+      ],
+      "subTotal": 15000,
+      "total": 15000,
+      "createdAt": "2026-02-24T05:11:12.358Z",
+      "updatedAt": "2026-02-24T05:11:58.541Z",
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-24T05:11:33.504Z",
+          "action": "sent",
+          "description": "Quote has been sent to customer",
+          "user": "Admin User"
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-02-24T05:11:58.541Z",
+          "action": "converted",
+          "description": "Converted to Invoice INV-00025",
+          "user": "Admin User",
+          "link": "/invoices/1771909918541"
+        }
+      ],
+      "convertedTo": "invoice"
     }
   ],
-  "nextQuoteNumber": 31
+  "nextQuoteNumber": 32
 }

@@ -232,6 +232,19 @@
       "sentAt": "2026-02-23T05:25:29.091Z",
       "providerMessageId": "mock-1771824329091-jsry0jd",
       "providerResponse": "\"250 2.0.0 OK (Mock)\""
+    },
+    {
+      "id": "0e13df96-0682-4fc5-b9ec-5f3a29df5f17",
+      "triggerId": "220af420-97c2-415c-9e7c-3ec0e4619ec3",
+      "toAddresses": "[\"ganeshkale5491@gmail.com\"]",
+      "subject": "Quotation QT-000031 from Cybaem Tech",
+      "status": "sent",
+      "attempts": 0,
+      "createdAt": "2026-02-24T05:11:38.520Z",
+      "updatedAt": "2026-02-24T05:11:38.532Z",
+      "sentAt": "2026-02-24T05:11:38.532Z",
+      "providerMessageId": "mock-1771909898531-o728an6",
+      "providerResponse": "\"250 2.0.0 OK (Mock)\""
     }
   ]
 }
