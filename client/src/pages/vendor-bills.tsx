@@ -519,12 +519,10 @@ function VendorBillDetailPanel({
     fetchVendorItems();
   }, []);
 
-  const canEdit = bill?.status === "DRAFT" || bill?.status === "Pending Approval" || bill?.status === "REJECTED" || bill?.status === "Rejected";
-
-  const canEdit = bill.status === "DRAFT" || bill.status === "Pending Approval" || bill.status === "REJECTED" || bill.status === "Rejected";
-  const canSubmitToAdmin = bill.status === "DRAFT";
-  const canResubmit = bill.status === "REJECTED" || bill.status === "Rejected";
-  const isRejected = bill.status === "REJECTED" || bill.status === "Rejected";
+  const canEditValue = (bill?.status === "DRAFT" || bill?.status === "Pending Approval" || bill?.status === "REJECTED" || bill?.status === "Rejected");
+  const canSubmitToAdmin = bill?.status === "DRAFT";
+  const canResubmit = bill?.status === "REJECTED" || bill?.status === "Rejected";
+  const isRejected = bill?.status === "REJECTED" || bill?.status === "Rejected";
 
   const handleEdit = () => {
     if (!bill) return;

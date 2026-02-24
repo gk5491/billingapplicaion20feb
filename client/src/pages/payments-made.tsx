@@ -1135,7 +1135,8 @@ export default function PaymentsMade() {
                           <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Bill #</TableHead>
                           <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Mode</TableHead>
                           <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Status</TableHead>
-                          <TableHead className="font-display font-semibold text-right text-slate-500 whitespace-nowrap">Amount</TableHead>
+                          <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Vendor Status</TableHead>
+                            <TableHead className="font-display font-semibold text-right text-slate-500 whitespace-nowrap">Amount</TableHead>
                           <TableHead className="font-display font-semibold text-right text-slate-500 whitespace-nowrap">Unused Amount</TableHead>
                           <TableHead className="w-10"></TableHead>
                         </TableRow>
