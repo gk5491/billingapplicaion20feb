@@ -861,7 +861,8 @@ export default function VendorBillsPage() {
   const { user, token } = useAuthStore();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { currentOrganization: organization } = useOrganization();
+  const { currentOrganization: orgData } = useOrganization();
+  const organization = orgData || undefined;
 
   const [bills, setBills] = useState<VendorBill[]>([]);
   const [selectedBill, setSelectedBill] = useState<VendorBill | null>(null);
@@ -1339,12 +1340,22 @@ export default function VendorBillsPage() {
                                 onClick={() => handleBillClick(bill)}
                                 data-testid={`row-bill-${bill.id}`}
                               >
-                                <td className="px-4 py-4 text-sm font-medium text-sidebar">{bill.billNumber}</td>
-                                <td className="px-4 py-4 text-sm text-slate-600">{formatDate(bill.billDate)}</td>
-                                <td className="px-4 py-4 text-sm text-slate-600">{formatDate(bill.dueDate)}</td>
-                                <td className="px-4 py-4 text-sm text-slate-900">{bill.vendorName || "-"}</td>
-                                <td className="px-4 py-4">{getStatusBadge(bill.status)}</td>
-                                <td className="px-4 py-4 text-sm text-right font-semibold text-slate-900">{formatCurrency(bill.total)}</td>
+                            <td className="px-4 py-4 text-sm font-medium text-sidebar">{bill.billNumber}</td>
+                            <td className="px-4 py-4 text-sm text-slate-600">{formatDate(bill.billDate)}</td>
+                            <td className="px-4 py-4 text-sm text-slate-600">{formatDate(bill.dueDate)}</td>
+                            <td className="px-4 py-4 text-sm text-slate-900">{bill.vendorName || "-"}</td>
+                            <td className="px-4 py-4">{getStatusBadge(bill.status)}</td>
+                            <td className="px-4 py-4">
+                              <Badge variant="outline" className={cn(
+                                "text-[10px] uppercase font-bold px-2 py-0.5",
+                                bill.paymentReceiptStatus === "PAID" ? "bg-green-50 text-green-700 border-green-200" :
+                                bill.paymentReceiptStatus === "Verified" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                "bg-slate-50 text-slate-500 border-slate-200"
+                              )}>
+                                {bill.paymentReceiptStatus || "Not Verified"}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-4 text-sm text-right font-semibold text-slate-900">{formatCurrency(bill.total)}</td>
                               </tr>
                             ))}
                           </tbody>

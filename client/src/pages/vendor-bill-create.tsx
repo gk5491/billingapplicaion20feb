@@ -137,6 +137,7 @@ export default function VendorBillCreate() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingItems, setLoadingItems] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingPO, setLoadingPO] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -1116,7 +1117,7 @@ export default function VendorBillCreate() {
                       </span>
                     </div>
 
-                    <div className="pt-4">
+                    <div className="pt-4 flex flex-col gap-2">
                       <Button 
                         type="button"
                         variant="outline"
