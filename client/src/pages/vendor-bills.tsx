@@ -497,6 +497,7 @@ function VendorBillDetailPanel({
   };
 
   const handleEdit = () => {
+  const handleEdit = () => {
     if (!bill) return;
     setBillForm({
       purchaseOrderId: bill.purchaseOrderId || "",
@@ -511,6 +512,20 @@ function VendorBillDetailPanel({
     setShowEditDialog(true);
   };
 
+  const handleDownloadPDF = async () => {
+    if (!bill) return;
+
+    if (bill.paymentReceiptStatus !== "Verified") {
+      toast({
+        title: "Download Restricted",
+        description: "The payment receipt must be verified by the vendor before downloading the PDF.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Logic for PDF download
     } catch (error) {
       console.error("PDF generation error:", error);
       toast({ title: "Error", description: "Failed to generate PDF.", variant: "destructive" });
