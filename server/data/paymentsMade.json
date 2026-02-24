@@ -319,7 +319,10 @@
       "paymentSource": "record_payment",
       "status": "PAID",
       "createdAt": "2026-02-23T08:44:11.805Z",
-      "updatedAt": "2026-02-23T08:44:11.805Z"
+      "updatedAt": "2026-02-24T09:39:41.261Z",
+      "paymentReceiptStatus": "Paid",
+      "vendorStatus": "Paid",
+      "receiptSentAt": "2026-02-24T09:39:41.261Z"
     },
     {
       "id": "pm-1771836427118",
@@ -483,7 +486,141 @@
       "status": "PAID",
       "createdAt": "2026-02-24T08:58:12.276Z",
       "updatedAt": "2026-02-24T08:58:12.276Z"
+    },
+    {
+      "id": "pm-1771926114586",
+      "paymentNumber": "PM-00094",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 100000,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-24",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #18",
+      "billPayments": {
+        "1771923179667": {
+          "billId": "1771923179667",
+          "billNumber": "18",
+          "billAmount": 1100000,
+          "amountPaid": 100000
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-24T09:41:54.544Z",
+      "updatedAt": "2026-02-24T09:42:59.356Z",
+      "paymentReceiptStatus": "Paid",
+      "vendorStatus": "Paid",
+      "receiptSentAt": "2026-02-24T09:42:59.356Z"
+    },
+    {
+      "id": "pm-1771927846130",
+      "paymentNumber": "PM-00095",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 900000,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-24",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #18",
+      "billPayments": {
+        "1771923179667": {
+          "billId": "1771923179667",
+          "billNumber": "18",
+          "billAmount": 1100000,
+          "amountPaid": 900000
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-24T10:10:46.127Z",
+      "updatedAt": "2026-02-24T10:10:46.127Z"
+    },
+    {
+      "id": "pm-1771928796391",
+      "paymentNumber": "PM-00096",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 1000,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-24",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #18",
+      "billPayments": {
+        "1771911762640": {
+          "billId": "1771911762640",
+          "billNumber": "18",
+          "billAmount": 25000,
+          "amountPaid": 1000
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-24T10:26:36.388Z",
+      "updatedAt": "2026-02-24T10:27:36.442Z",
+      "paymentReceiptStatus": "Paid",
+      "vendorStatus": "Paid",
+      "receiptSentAt": "2026-02-24T10:27:36.442Z"
+    },
+    {
+      "id": "pm-1771929012985",
+      "paymentNumber": "PM-00097",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 4000,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-24",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #18",
+      "billPayments": {
+        "1771911762640": {
+          "billId": "1771911762640",
+          "billNumber": "18",
+          "billAmount": 25000,
+          "amountPaid": 4000
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-24T10:30:12.983Z",
+      "updatedAt": "2026-02-24T10:30:12.983Z"
     }
   ],
-  "nextPaymentNumber": 94
+  "nextPaymentNumber": 98
 }

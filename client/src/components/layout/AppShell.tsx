@@ -263,6 +263,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <NavItem href="/purchase-orders" label="Purchase Orders" indent />
                 <NavItem href="/bills" label="Bills" indent />
                 <NavItem href="/payments-made" label="Payments Made" indent />
+                <NavItem href="/purchase-receipts" label="Receipts" indent />
                 <NavItem href="/vendor-credits" label="Vendor Credits" indent />
               </CollapsibleNavItem>
 

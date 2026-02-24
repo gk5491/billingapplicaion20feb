@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 import { useBranding } from "@/hooks/use-branding";
 import { PurchasePDFHeader } from "@/components/purchase-pdf-header";
 import { useOrganization } from "@/context/OrganizationContext";
-import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { robustIframePrint } from "@/lib/robust-print";
 import { Button } from "@/components/ui/button";
@@ -32,14 +32,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Search,
   FileCheck,
   X,
@@ -49,9 +41,61 @@ import {
   Download,
   Loader2,
   Receipt,
-  Send,
-  Plus,
 } from "lucide-react";
+
+interface ReceiptRecord {
+  id: string;
+  vendorId?: string;
+  vendorName?: string;
+  paymentId?: string;
+  paymentNumber?: string;
+  amount?: number;
+  paymentStatus?: string;
+  status?: string;
+  notes?: string;
+  sentToAdmin?: boolean;
+  sentAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  receiptNumber?: string;
+  date?: string;
+  // Payment details for PDF
+  paymentMode?: string;
+  reference?: string;
+  vendorGstin?: string;
+  vendorAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    country?: string;
+  };
+  billPayments?: Record<string, { billId?: string; billNumber?: string; billAmount?: number; paymentAmount?: number }> | Array<{ billId?: string; billNumber?: string; billAmount?: number; paymentAmount?: number }>;
+}
+
+interface PaymentMade {
+  id: string;
+  paymentNumber: string;
+  vendorId: string;
+  vendorName: string;
+  vendorGstin?: string;
+  vendorAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    country?: string;
+  };
+  paymentAmount: number;
+  paymentDate: string;
+  paymentMode: string;
+  reference?: string;
+  billPayments?: Record<string, any> | any[];
+  paymentReceiptStatus?: string;
+  receiptSentAt?: string;
+  vendorStatus?: string;
+  status: string;
+}
 
 function numberToWords(num: number): string {
   if (num === 0) return "Zero Only";
@@ -96,34 +140,36 @@ function getPaymentModeLabel(value?: string): string {
   return options[value || ""] || value || "-";
 }
 
+function getBillPaymentsArray(payment: PaymentMade): Array<{ billNumber?: string; billAmount?: number; paymentAmount?: number }> {
+  if (!payment.billPayments) return [];
+  if (Array.isArray(payment.billPayments)) return payment.billPayments;
+  return Object.values(payment.billPayments);
+}
+
 function StatusBadge({ status }: { status: string }) {
   const normalized = status?.toLowerCase() || "";
-  if (normalized.includes("sent")) {
-    return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Sent to Admin</Badge>;
-  }
   if (normalized.includes("paid")) {
     return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Paid</Badge>;
   }
   if (normalized.includes("verif")) {
     return <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">Verified</Badge>;
   }
-  return <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Generated</Badge>;
+  if (normalized.includes("sent")) {
+    return <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-indigo-50">Sent to Admin</Badge>;
+  }
+  return <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Pending</Badge>;
 }
 
-// PDF View — matches admin receipts exactly
-function ReceiptPDFView({ receipt, payment, branding, organization }: { receipt: any; payment: any | null; branding?: any; organization?: any }) {
-  const amount = payment?.paymentAmount || payment?.amount || receipt.amount || 0;
-  const billPayments = (() => {
-    if (!payment?.billPayments) return [];
-    if (Array.isArray(payment.billPayments)) return payment.billPayments;
-    return Object.values(payment.billPayments);
-  })();
-  const status = receipt.status || receipt.paymentStatus || "Generated";
+// PDF View of Payment Receipt — matches vendor side exactly
+function PaymentReceiptPDFView({ payment, branding, organization }: { payment: PaymentMade; branding?: any; organization?: any }) {
+  const amount = payment.paymentAmount || 0;
+  const billPayments = getBillPaymentsArray(payment);
+  const status = payment.paymentReceiptStatus || payment.vendorStatus || payment.status || "Paid";
 
   return (
     <div className="mx-auto shadow-lg bg-white my-8 w-full max-w-[210mm]">
       <div
-        id="vendor-receipt-pdf-content"
+        id="admin-receipt-pdf-content"
         className="bg-white border border-slate-200"
         style={{
           backgroundColor: "white",
@@ -141,8 +187,8 @@ function ReceiptPDFView({ receipt, payment, branding, organization }: { receipt:
           <PurchasePDFHeader
             logo={branding?.logo}
             documentTitle="PAYMENT RECEIPT"
-            documentNumber={receipt.receiptNumber || receipt.paymentNumber || `REC-${receipt.id}`}
-            date={receipt.date || receipt.createdAt}
+            documentNumber={payment.paymentNumber || payment.id || ""}
+            date={payment.paymentDate}
             organization={organization}
           />
 
@@ -152,9 +198,9 @@ function ReceiptPDFView({ receipt, payment, branding, organization }: { receipt:
                 VENDOR
               </h4>
               <p style={{ fontSize: "18px", fontWeight: "900", color: "#0f172a", marginBottom: "6px", margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
-                {receipt.vendorName || payment?.vendorName || "Vendor"}
+                {payment.vendorName || "Vendor"}
               </p>
-              {payment?.vendorAddress && (
+              {payment.vendorAddress && (
                 <div style={{ fontSize: "13px", color: "#475569", lineHeight: "1.6" }}>
                   {payment.vendorAddress.street && <p style={{ margin: 0 }}>{payment.vendorAddress.street}</p>}
                   {payment.vendorAddress.city && <p style={{ margin: 0 }}>{payment.vendorAddress.city}</p>}
@@ -162,7 +208,7 @@ function ReceiptPDFView({ receipt, payment, branding, organization }: { receipt:
                   {payment.vendorAddress.country && <p style={{ margin: 0 }}>{payment.vendorAddress.country}</p>}
                 </div>
               )}
-              {payment?.vendorGstin && (
+              {payment.vendorGstin && (
                 <p style={{ margin: "4px 0 0 0", fontWeight: "600", color: "#991b1b", fontSize: "13px" }}>GSTIN: {payment.vendorGstin}</p>
               )}
             </div>
@@ -171,15 +217,15 @@ function ReceiptPDFView({ receipt, payment, branding, organization }: { receipt:
           <div className="grid grid-cols-2 md:grid-cols-3 gap-[2px] mb-10 bg-slate-100 overflow-hidden border border-slate-100" style={{ marginBottom: "40px", backgroundColor: "#f1f5f9", border: "1px solid #f1f5f9", borderRadius: "8px" }}>
             <div style={{ backgroundColor: "#ffffff", padding: "16px" }}>
               <p style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>Payment Date</p>
-              <p style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a", margin: "0" }}>{formatDate(payment?.paymentDate || receipt.date || receipt.createdAt)}</p>
+              <p style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a", margin: "0" }}>{formatDate(payment.paymentDate)}</p>
             </div>
             <div style={{ backgroundColor: "#ffffff", padding: "16px" }}>
               <p style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>Payment Mode</p>
-              <p style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a", margin: "0" }}>{getPaymentModeLabel(payment?.paymentMode)}</p>
+              <p style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a", margin: "0" }}>{getPaymentModeLabel(payment.paymentMode)}</p>
             </div>
             <div style={{ backgroundColor: "#ffffff", padding: "16px" }}>
               <p style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>Reference</p>
-              <p style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a", margin: "0" }}>{payment?.reference || "-"}</p>
+              <p style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a", margin: "0" }}>{payment.reference || "-"}</p>
             </div>
           </div>
 
@@ -215,7 +261,7 @@ function ReceiptPDFView({ receipt, payment, branding, organization }: { receipt:
                   </tr>
                 </thead>
                 <tbody>
-                  {billPayments.map((bp: any, idx: number) => (
+                  {billPayments.map((bp, idx) => (
                     <tr key={idx} style={{ borderBottom: "1px solid #e2e8f0" }}>
                       <td style={{ padding: "12px 8px", fontSize: "13px" }}>{bp.billNumber || "-"}</td>
                       <td style={{ padding: "12px 8px", fontSize: "13px", textAlign: "right" }}>{formatCurrency(bp.billAmount || 0)}</td>
@@ -229,12 +275,12 @@ function ReceiptPDFView({ receipt, payment, branding, organization }: { receipt:
 
           <div style={{ marginTop: "40px", padding: "16px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Status</span>
+              <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Vendor Status</span>
               <span style={{
                 fontSize: "13px",
                 fontWeight: "800",
-                color: status.toLowerCase().includes("sent") ? "#16a34a" :
-                  status.toLowerCase().includes("paid") ? "#16a34a" : "#ca8a04",
+                color: status.toLowerCase().includes("paid") ? "#16a34a" :
+                  status.toLowerCase().includes("dispute") ? "#dc2626" : "#ca8a04",
               }}>
                 {status.toUpperCase()}
               </span>
@@ -259,25 +305,21 @@ function ReceiptDetailPanel({
   onClose,
   branding,
   organization,
-  onSendToAdmin,
-  isProcessing,
 }: {
-  receipt: any;
-  payment: any | null;
+  receipt: ReceiptRecord;
+  payment: PaymentMade | null;
   onClose: () => void;
   branding?: any;
   organization?: any;
-  onSendToAdmin: (id: string) => void;
-  isProcessing: boolean;
 }) {
   const [showPdfView, setShowPdfView] = useState(true);
   const { toast } = useToast();
-  const status = receipt.status || receipt.paymentStatus || "Generated";
+  const status = receipt.paymentStatus || receipt.status || "Paid";
 
   const handlePrint = async () => {
     toast({ title: "Preparing print...", description: "Opening print dialog." });
     try {
-      await robustIframePrint("vendor-receipt-pdf-content", `Receipt - ${receipt.receiptNumber || receipt.id}`);
+      await robustIframePrint("admin-receipt-pdf-content", `Payment Receipt - ${receipt.paymentNumber || receipt.id}`);
     } catch (error) {
       console.error("Print failed:", error);
       toast({ title: "Print failed", variant: "destructive" });
@@ -293,7 +335,7 @@ function ReceiptDetailPanel({
     try {
       const html2canvas = (await import("html2canvas")).default;
       const { jsPDF } = await import("jspdf");
-      const element = document.getElementById("vendor-receipt-pdf-content");
+      const element = document.getElementById("admin-receipt-pdf-content");
       if (!element) return;
       const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff" });
       const imgData = canvas.toDataURL("image/png");
@@ -302,7 +344,7 @@ function ReceiptDetailPanel({
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Receipt-${receipt.receiptNumber || receipt.id}.pdf`);
+      pdf.save(`Receipt-${receipt.paymentNumber || receipt.id}.pdf`);
       toast({ title: "PDF downloaded successfully" });
     } catch (error) {
       console.error("PDF generation error:", error);
@@ -315,7 +357,7 @@ function ReceiptDetailPanel({
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-slate-900">
-            {receipt.receiptNumber || receipt.paymentNumber || `REC-${receipt.id}`}
+            {receipt.paymentNumber || receipt.receiptNumber || `REC-${receipt.id}`}
           </h2>
           <StatusBadge status={status} />
         </div>
@@ -342,36 +384,23 @@ function ReceiptDetailPanel({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {receipt.status !== "Sent to Admin" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-xs font-semibold text-blue-600"
-            onClick={() => onSendToAdmin(receipt.id)}
-            disabled={isProcessing}
-          >
-            <Send className="h-3.5 w-3.5" />
-            Send to Admin
-          </Button>
-        )}
       </div>
 
       <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Switch
-            id="vendor-pdf-view-toggle"
+            id="admin-pdf-view-toggle"
             checked={showPdfView}
             onCheckedChange={setShowPdfView}
           />
-          <Label htmlFor="vendor-pdf-view-toggle" className="text-sm text-slate-600">PDF View</Label>
+          <Label htmlFor="admin-pdf-view-toggle" className="text-sm text-slate-600">PDF View</Label>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {showPdfView ? (
+        {showPdfView && payment ? (
           <div className="p-4 bg-slate-100 overflow-auto">
-            <ReceiptPDFView receipt={receipt} payment={payment} branding={branding} organization={organization} />
+            <PaymentReceiptPDFView payment={payment} branding={branding} organization={organization} />
           </div>
         ) : (
           <div className="p-4 space-y-6">
@@ -379,12 +408,12 @@ function ReceiptDetailPanel({
               <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Receipt Information</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-slate-500 text-xs font-medium mb-1">Receipt #</p>
-                  <p className="font-semibold text-slate-900">{receipt.receiptNumber || `REC-${receipt.id}`}</p>
+                  <p className="text-slate-500 text-xs font-medium mb-1">Payment Number</p>
+                  <p className="font-semibold text-slate-900">{receipt.paymentNumber || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-slate-500 text-xs font-medium mb-1">Payment #</p>
-                  <p className="font-semibold text-slate-900">{receipt.paymentNumber || "-"}</p>
+                  <p className="text-slate-500 text-xs font-medium mb-1">Vendor</p>
+                  <p className="font-semibold text-slate-900">{receipt.vendorName || "-"}</p>
                 </div>
                 <div>
                   <p className="text-slate-500 text-xs font-medium mb-1">Amount</p>
@@ -395,17 +424,22 @@ function ReceiptDetailPanel({
                   <StatusBadge status={status} />
                 </div>
                 <div>
-                  <p className="text-slate-500 text-xs font-medium mb-1">Date</p>
-                  <p className="font-semibold text-slate-900">{formatDate(receipt.date || receipt.createdAt)}</p>
+                  <p className="text-slate-500 text-xs font-medium mb-1">Sent At</p>
+                  <p className="font-semibold text-slate-900">{formatDate(receipt.sentAt)}</p>
                 </div>
-                {receipt.sentAt && (
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-1">Sent At</p>
-                    <p className="font-semibold text-slate-900">{formatDate(receipt.sentAt)}</p>
-                  </div>
-                )}
+                <div>
+                  <p className="text-slate-500 text-xs font-medium mb-1">Created</p>
+                  <p className="font-semibold text-slate-900">{formatDate(receipt.createdAt)}</p>
+                </div>
               </div>
             </div>
+
+            {receipt.notes && (
+              <div className="border-t border-slate-200 pt-4 space-y-2">
+                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Notes</h3>
+                <p className="text-sm text-slate-600">{receipt.notes}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -413,20 +447,13 @@ function ReceiptDetailPanel({
   );
 }
 
-export default function VendorReceiptsPage() {
-  const { token } = useAuthStore();
+export default function PurchaseReceiptsPage() {
   const { toast } = useToast();
   const { data: branding } = useBranding();
   const { currentOrganization } = useOrganization();
 
-  const [receipts, setReceipts] = useState<any[]>([]);
-  const [confirmedPayments, setConfirmedPayments] = useState<any[]>([]);
-  const [vendorPayments, setVendorPayments] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
-  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRecord | null>(null);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
 
@@ -437,115 +464,37 @@ export default function VendorReceiptsPage() {
     return () => window.removeEventListener("resize", checkCompact);
   }, []);
 
-  const fetchReceipts = async () => {
-    try {
-      const res = await fetch("/api/vendor/receipts", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) setReceipts(data.data || []);
-      }
-    } catch (err) {
-      console.error("Failed to load receipts:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Fetch admin receipts (vendor-sent receipts with sentToAdmin=true)
+  const { data: receiptsData, isLoading: receiptsLoading } = useQuery<{ success: boolean; data: ReceiptRecord[] }>({
+    queryKey: ['/api/receipts'],
+  });
 
-  const fetchVendorPayments = async () => {
-    try {
-      const res = await fetch("/api/vendor/payments", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) setVendorPayments(data.data || []);
-      }
-    } catch (err) {
-      console.error("Failed to load vendor payments:", err);
-    }
-  };
+  // Fetch all payments data to get full payment details for PDF
+  const { data: paymentsData } = useQuery<{ success: boolean; data: PaymentMade[] }>({
+    queryKey: ['/api/payments-made'],
+  });
 
-  const fetchConfirmedPayments = async () => {
-    try {
-      const res = await fetch("/api/vendor/payments?status=Confirmed", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          const paymentsWithReceipts = receipts.map((r) => r.paymentId);
-          setConfirmedPayments((data.data || []).filter((p: any) => !paymentsWithReceipts.includes(p.id)));
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load confirmed payments:", err);
-    }
-  };
+  const receipts = receiptsData?.data || [];
+  const payments = paymentsData?.data || [];
 
-  useEffect(() => { fetchReceipts(); fetchVendorPayments(); }, [token]);
-  useEffect(() => { if (!isLoading) fetchConfirmedPayments(); }, [isLoading, receipts]);
-
-  const getPaymentForReceipt = (receipt: any) => {
+  // Find full payment record for a receipt
+  const getPaymentForReceipt = (receipt: ReceiptRecord): PaymentMade | null => {
     if (!receipt.paymentId) return null;
-    return vendorPayments.find(p => p.id === receipt.paymentId) || null;
-  };
-
-  const handleGenerateReceipt = async (paymentId: string) => {
-    setIsProcessing(true);
-    try {
-      const res = await fetch("/api/vendor/receipts/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ paymentId }),
-      });
-      if (res.ok) {
-        toast({ title: "Receipt generated successfully" });
-        fetchReceipts();
-        setShowGenerateDialog(false);
-      } else {
-        toast({ title: "Failed to generate receipt", variant: "destructive" });
-      }
-    } catch (err) {
-      toast({ title: "Error generating receipt", variant: "destructive" });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleSendToAdmin = async (receiptId: string) => {
-    setIsProcessing(true);
-    try {
-      const res = await fetch(`/api/vendor/receipts/${receiptId}/send`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        toast({ title: "Receipt sent to admin" });
-        fetchReceipts();
-        // Update selected receipt if it's the one we just sent
-        if (selectedReceipt?.id === receiptId) {
-          setSelectedReceipt((prev: any) => prev ? { ...prev, status: "Sent to Admin", sentAt: new Date().toISOString() } : null);
-        }
-      } else {
-        toast({ title: "Failed to send receipt", variant: "destructive" });
-      }
-    } catch (err) {
-      toast({ title: "Error sending receipt", variant: "destructive" });
-    } finally {
-      setIsProcessing(false);
-    }
+    return payments.find(p => p.id === receipt.paymentId) || null;
   };
 
   const filteredReceipts = useMemo(() => {
-    if (!searchQuery.trim()) return receipts;
-    const q = searchQuery.toLowerCase();
-    return receipts.filter(r =>
-      (r.receiptNumber || "").toLowerCase().includes(q) ||
-      (r.paymentNumber || "").toLowerCase().includes(q) ||
-      String(r.amount || "").includes(q)
-    );
+    let result = receipts;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(r =>
+        (r.paymentNumber || "").toLowerCase().includes(q) ||
+        (r.vendorName || "").toLowerCase().includes(q) ||
+        (r.receiptNumber || "").toLowerCase().includes(q) ||
+        String(r.amount || "").includes(q)
+      );
+    }
+    return result;
   }, [receipts, searchQuery]);
 
   const selectedPayment = selectedReceipt ? getPaymentForReceipt(selectedReceipt) : null;
@@ -604,21 +553,10 @@ export default function VendorReceiptsPage() {
                       />
                     </div>
                   )}
-                  <Button
-                    className={cn(
-                      "bg-sidebar hover:bg-sidebar/90 font-display font-medium gap-1.5 h-9",
-                      selectedReceipt && "w-9 px-0"
-                    )}
-                    size={selectedReceipt ? "icon" : "default"}
-                    onClick={() => { fetchConfirmedPayments(); setShowGenerateDialog(true); }}
-                  >
-                    <Plus className={cn("h-4 w-4", !selectedReceipt && "mr-1.5")} />
-                    {!selectedReceipt && <span>Generate Receipt</span>}
-                  </Button>
                 </div>
               </div>
 
-              {isLoading ? (
+              {receiptsLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
                 </div>
@@ -630,7 +568,7 @@ export default function VendorReceiptsPage() {
                     </div>
                     <h3 className="text-lg font-semibold mb-2">No receipts found</h3>
                     <p className="text-muted-foreground mb-4 max-w-sm">
-                      Generate a receipt from a confirmed payment to get started.
+                      Receipts will appear here once vendors update payment status to "Paid" and send the receipt.
                     </p>
                   </CardContent>
                 </Card>
@@ -649,19 +587,19 @@ export default function VendorReceiptsPage() {
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-start justify-between gap-2">
                             <h3 className="font-semibold text-[14px] text-slate-900 truncate">
-                              {receipt.receiptNumber || `REC-${receipt.id}`}
+                              {receipt.paymentNumber || receipt.receiptNumber || `REC-${receipt.id}`}
                             </h3>
                             <span className="font-semibold text-[14px] text-slate-900 whitespace-nowrap">
                               {formatCurrency(receipt.amount || 0)}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-[13px] text-slate-500">
-                            <span>{receipt.paymentNumber || "-"}</span>
+                            <span>{receipt.vendorName || "-"}</span>
                             <span className="text-slate-300">|</span>
-                            <span>{formatDate(receipt.date || receipt.createdAt)}</span>
+                            <span>{formatDate(receipt.sentAt || receipt.createdAt)}</span>
                           </div>
                           <div className="pt-1">
-                            <StatusBadge status={receipt.status || "Generated"} />
+                            <StatusBadge status={receipt.paymentStatus || receipt.status || "Paid"} />
                           </div>
                         </div>
                         {selectedReceipt.id === receipt.id && (
@@ -677,12 +615,11 @@ export default function VendorReceiptsPage() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
-                          <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Receipt #</TableHead>
-                          <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Payment #</TableHead>
                           <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Date</TableHead>
+                          <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Payment #</TableHead>
+                          <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Vendor</TableHead>
                           <TableHead className="font-display font-semibold text-right text-slate-500 whitespace-nowrap">Amount</TableHead>
                           <TableHead className="font-display font-semibold text-slate-500 whitespace-nowrap">Status</TableHead>
-                          <TableHead className="font-display font-semibold text-right text-slate-500 whitespace-nowrap">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -692,24 +629,11 @@ export default function VendorReceiptsPage() {
                             onClick={() => setSelectedReceipt(receipt)}
                             className="cursor-pointer hover-elevate"
                           >
-                            <TableCell className="text-sm font-medium">{receipt.receiptNumber || `REC-${receipt.id}`}</TableCell>
-                            <TableCell className="text-sm">{receipt.paymentNumber || "-"}</TableCell>
-                            <TableCell className="text-sm">{formatDate(receipt.date || receipt.createdAt)}</TableCell>
+                            <TableCell className="text-sm">{formatDate(receipt.sentAt || receipt.createdAt)}</TableCell>
+                            <TableCell className="text-sm font-medium">{receipt.paymentNumber || receipt.receiptNumber || `REC-${receipt.id}`}</TableCell>
+                            <TableCell className="text-sm">{receipt.vendorName || "-"}</TableCell>
                             <TableCell className="text-sm text-right font-medium">{formatCurrency(receipt.amount || 0)}</TableCell>
-                            <TableCell><StatusBadge status={receipt.status || "Generated"} /></TableCell>
-                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                              {receipt.status !== "Sent to Admin" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-blue-600 gap-1"
-                                  onClick={() => handleSendToAdmin(receipt.id)}
-                                  disabled={isProcessing}
-                                >
-                                  <Send className="h-3.5 w-3.5" /> Send
-                                </Button>
-                              )}
-                            </TableCell>
+                            <TableCell><StatusBadge status={receipt.paymentStatus || receipt.status || "Paid"} /></TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -735,48 +659,10 @@ export default function VendorReceiptsPage() {
               onClose={() => setSelectedReceipt(null)}
               branding={branding}
               organization={currentOrganization}
-              onSendToAdmin={handleSendToAdmin}
-              isProcessing={isProcessing}
             />
           </ResizablePanel>
         )}
       </ResizablePanelGroup>
-
-      <Dialog open={showGenerateDialog} onOpenChange={setShowGenerateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Generate Receipt</DialogTitle>
-            <DialogDescription>Select a confirmed payment to generate a receipt</DialogDescription>
-          </DialogHeader>
-          {confirmedPayments.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-4">No confirmed payments without receipts</p>
-          ) : (
-            <div className="space-y-2">
-              {confirmedPayments.map((payment) => (
-                <div
-                  key={payment.id}
-                  className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{payment.paymentNumber || payment.id}</p>
-                    <p className="text-xs text-slate-500">₹{(payment.amount || 0).toLocaleString("en-IN")} • {payment.date ? new Date(payment.date).toLocaleDateString("en-IN") : ""}</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => handleGenerateReceipt(payment.id)}
-                    disabled={isProcessing}
-                  >
-                    Generate
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGenerateDialog(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

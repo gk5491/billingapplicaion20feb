@@ -41,6 +41,7 @@ import Bills from "@/pages/bills";
 import BillCreate from "@/pages/bill-create";
 import BillEdit from "@/pages/bill-edit";
 import PaymentsMade from "@/pages/payments-made";
+import PurchaseReceipts from "@/pages/purchase-receipts";
 import PaymentsMadeCreate from "@/pages/payments-made-create";
 import PaymentsMadeEdit from "@/pages/payments-made-edit";
 import VendorCredits from "@/pages/vendor-credits";
@@ -182,6 +183,7 @@ function Router() {
               <Route path="/payments-made" component={PaymentsMade} />
               <Route path="/payments-made/new" component={PaymentsMadeCreate} />
               <Route path="/payments-made/edit/:id" component={PaymentsMadeEdit} />
+              <Route path="/purchase-receipts" component={PurchaseReceipts} />
               <Route path="/vendor-credits" component={VendorCredits} />
               <Route path="/vendor-credits/new" component={VendorCreditCreate} />
               <Route path="/vendor-credits/create" component={VendorCreditCreate} />

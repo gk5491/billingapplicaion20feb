@@ -363,7 +363,7 @@ function PaymentDetailPanel({
     const normalized = (rawStatus || "").toLowerCase();
     if (normalized.includes("paid")) return "Paid";
     if (normalized.includes("verif") || normalized.includes("confirm")) return "Verified";
-    return "Pending Verification";
+    return "Verification Pending";
   };
 
   const [showPdfView, setShowPdfView] = useState(true);
@@ -382,8 +382,24 @@ function PaymentDetailPanel({
     setReceiptStatus(normalizeReceiptStatus(getEffectiveStatus(payment)));
   }, [payment]);
 
-  const handleStatusChange = (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string) => {
     setReceiptStatus(newStatus);
+    // Persist status change via API
+    try {
+      const res = await fetch(`/api/vendor/payments/${payment.id}/receipt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${useAuthStore.getState().token}` },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        toast({ title: `Status updated to ${newStatus}` });
+        onGenerateReceipt(payment); // Refresh data
+      } else {
+        toast({ title: "Failed to update status", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error updating status", variant: "destructive" });
+    }
   };
 
   const handleSendReceipt = async () => {
@@ -505,7 +521,7 @@ function PaymentDetailPanel({
           </>
         )}
 
-        {isConfirmed && (
+        {receiptStatus === "Paid" && (
           <>
             <div className="w-px h-4 bg-slate-200 mx-1" />
             <Button
@@ -540,26 +556,28 @@ function PaymentDetailPanel({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-500 uppercase">Vendor Status:</span>
-              <Select value={receiptStatus} onValueChange={handleStatusChange}>
-                <SelectTrigger className="h-8 w-[150px]">
+              <Select value={receiptStatus} onValueChange={handleStatusChange} disabled={receiptStatus === "Paid"}>
+                <SelectTrigger className="h-8 w-[180px]">
                   <SelectValue placeholder="Update Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Pending Verification">Pending Verification</SelectItem>
+                  <SelectItem value="Verification Pending">Verification Pending</SelectItem>
                   <SelectItem value="Verified">Verified</SelectItem>
                   <SelectItem value="Paid">Paid</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <Button 
-              size="sm" 
-              className="h-8 gap-1.5 bg-sidebar text-white hover:bg-sidebar/90" 
-              onClick={handleSendReceipt}
-              disabled={isSendingReceipt}
-            >
-              {isSendingReceipt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-              Send Receipt
-            </Button>
+            {receiptStatus === "Paid" && (
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 bg-sidebar text-white hover:bg-sidebar/90"
+                onClick={handleSendReceipt}
+                disabled={isSendingReceipt}
+              >
+                {isSendingReceipt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                Send Receipt
+              </Button>
+            )}
           </div>
         </div>
 

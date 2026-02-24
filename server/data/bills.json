@@ -52,7 +52,7 @@
       "status": "PAID",
       "pdfTemplate": "Standard Template",
       "createdAt": "2026-02-23T07:18:58.042Z",
-      "updatedAt": "2026-02-24T05:44:35.548Z",
+      "updatedAt": "2026-02-24T09:39:41.261Z",
       "createdBy": "Admin User",
       "activityLogs": [
         {
@@ -96,6 +96,13 @@
           "action": "receipt_sent",
           "description": "Payment receipt sent by vendor (Status: Verified)",
           "user": "Vendor"
+        },
+        {
+          "id": "1771925981264",
+          "timestamp": "2026-02-24T09:39:41.261Z",
+          "action": "receipt_sent",
+          "description": "Payment receipt updated by vendor (Status: Paid)",
+          "user": "Vendor"
         }
       ],
       "tcsType": "TCS",
@@ -121,7 +128,7 @@
         }
       ],
       "creditsApplied": [],
-      "paymentReceiptStatus": "Verified"
+      "paymentReceiptStatus": "Paid"
     },
     {
       "id": "1770791906254",
@@ -824,12 +831,12 @@
       "attachments": [],
       "tcsAmount": 0,
       "tdsAmount": 0,
-      "balanceDue": 10000,
+      "balanceDue": 5000,
       "status": "PARTIALLY_PAID",
       "createdBy": "vendor",
       "createdAt": "2026-02-24T05:42:42.640Z",
-      "updatedAt": "2026-02-24T05:45:09.532Z",
-      "paymentReceiptStatus": "Verified",
+      "updatedAt": "2026-02-24T10:30:12.983Z",
+      "paymentReceiptStatus": "Paid",
       "activityLogs": [
         {
           "id": "1771911777621",
@@ -844,6 +851,27 @@
           "action": "payment",
           "description": "Payment of ₹15,000 recorded",
           "user": "Admin User"
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-02-24T10:26:36.388Z",
+          "action": "payment",
+          "description": "Payment of ₹1,000 recorded",
+          "user": "Admin User"
+        },
+        {
+          "id": "1771928856445",
+          "timestamp": "2026-02-24T10:27:36.442Z",
+          "action": "receipt_sent",
+          "description": "Payment receipt updated by vendor (Status: Paid)",
+          "user": "Vendor"
+        },
+        {
+          "id": "5",
+          "timestamp": "2026-02-24T10:30:12.983Z",
+          "action": "payment",
+          "description": "Payment of ₹4,000 recorded",
+          "user": "Admin User"
         }
       ],
       "paymentsRecorded": [
@@ -853,9 +881,23 @@
           "amount": 15000,
           "date": "2026-02-24",
           "mode": "Cash"
+        },
+        {
+          "paymentId": "direct-1771928796388",
+          "paymentNumber": "PM-00096",
+          "amount": 1000,
+          "date": "2026-02-24",
+          "mode": "Cash"
+        },
+        {
+          "paymentId": "direct-1771929012983",
+          "paymentNumber": "PM-00097",
+          "amount": 4000,
+          "date": "2026-02-24",
+          "mode": "Cash"
         }
       ],
-      "amountPaid": 15000
+      "amountPaid": 20000
     },
     {
       "id": "1771923179667",
@@ -906,11 +948,11 @@
       "attachments": [],
       "tcsAmount": 0,
       "tdsAmount": 0,
-      "balanceDue": 1000000,
-      "status": "PARTIALLY_PAID",
+      "balanceDue": 0,
+      "status": "PAID",
       "createdBy": "vendor",
       "createdAt": "2026-02-24T08:52:59.667Z",
-      "updatedAt": "2026-02-24T08:58:12.276Z",
+      "updatedAt": "2026-02-24T10:10:46.127Z",
       "paymentsRecorded": [
         {
           "paymentId": "direct-1771923271081",
@@ -925,9 +967,23 @@
           "amount": 99890,
           "date": "2026-02-24",
           "mode": "Cash"
+        },
+        {
+          "paymentId": "direct-1771926114544",
+          "paymentNumber": "PM-00094",
+          "amount": 100000,
+          "date": "2026-02-24",
+          "mode": "Cash"
+        },
+        {
+          "paymentId": "direct-1771927846127",
+          "paymentNumber": "PM-00095",
+          "amount": 900000,
+          "date": "2026-02-24",
+          "mode": "Cash"
         }
       ],
-      "amountPaid": 100000,
+      "amountPaid": 1100000,
       "activityLogs": [
         {
           "id": "1",
@@ -948,6 +1004,27 @@
           "timestamp": "2026-02-24T08:58:12.276Z",
           "action": "payment",
           "description": "Payment of ₹99,890 recorded",
+          "user": "Admin User"
+        },
+        {
+          "id": "4",
+          "timestamp": "2026-02-24T09:41:54.544Z",
+          "action": "payment",
+          "description": "Payment of ₹1,00,000 recorded",
+          "user": "Admin User"
+        },
+        {
+          "id": "1771926179359",
+          "timestamp": "2026-02-24T09:42:59.356Z",
+          "action": "receipt_sent",
+          "description": "Payment receipt updated by vendor (Status: Paid)",
+          "user": "Vendor"
+        },
+        {
+          "id": "6",
+          "timestamp": "2026-02-24T10:10:46.127Z",
+          "action": "payment",
+          "description": "Payment of ₹9,00,000 recorded",
           "user": "Admin User"
         }
       ],

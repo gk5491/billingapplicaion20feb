@@ -895,16 +895,7 @@ function BillDetailPanel({
       </div>
 
       <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-200 overflow-x-auto bg-white">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-1.5"
-          onClick={onEdit}
-          data-testid="button-edit-bill"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Edit
-        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 gap-1.5">
