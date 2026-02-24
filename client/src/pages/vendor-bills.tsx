@@ -606,13 +606,13 @@ function VendorBillDetailPanel({
         <div className="w-px h-4 bg-slate-200 mx-1" />
         <div className="flex items-center gap-2">
           <Select value={receiptStatus} onValueChange={setReceiptStatus}>
-            <SelectTrigger className="h-8 w-32 text-xs font-semibold">
+            <SelectTrigger className="h-8 w-40 text-xs font-semibold">
               <SelectValue placeholder="Receipt Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Not Verified">Not Verified</SelectItem>
+              <SelectItem value="Pending Verification">Pending Verification</SelectItem>
               <SelectItem value="Verified">Verified</SelectItem>
-              <SelectItem value="PAID">PAID</SelectItem>
+              <SelectItem value="Paid">Paid</SelectItem>
             </SelectContent>
           </Select>
           <Button 
@@ -623,7 +623,7 @@ function VendorBillDetailPanel({
             disabled={isSendingReceipt}
           >
             <Send className="h-3.5 w-3.5" />
-            {isSendingReceipt ? "Sending..." : "Send Receipt"}
+            {isSendingReceipt ? "Updating..." : "Update Status"}
           </Button>
         </div>
       </div>
@@ -870,11 +870,13 @@ export default function VendorBillsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [branding, setBranding] = useState<any>(null);
+  const [vendorItems, setVendorItems] = useState<any[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [billForm, setBillForm] = useState({ ...emptyBillForm });
+  const [billForm, setBillForm] = useState({ ...emptyBillForm, purchaseOrderId: "" });
   const [editBillId, setEditBillId] = useState<string | null>(null);
 
   const [isCompact, setIsCompact] = useState(false);
@@ -902,6 +904,37 @@ export default function VendorBillsPage() {
     }
   };
 
+  const fetchVendorItems = async () => {
+    try {
+      const res = await fetch("/api/vendor/items", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) setVendorItems(data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch vendor items:", err);
+    }
+  };
+
+  const fetchPurchaseOrders = async () => {
+    try {
+      const res = await fetch("/api/vendor/purchase-orders", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          // Only show accepted POs that can be converted
+          setPurchaseOrders(data.data.filter((po: any) => po.status?.toLowerCase() === "accepted") || []);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch purchase orders:", err);
+    }
+  };
+
   const fetchBranding = async () => {
     try {
       const res = await fetch("/api/branding");
@@ -915,6 +948,8 @@ export default function VendorBillsPage() {
   useEffect(() => {
     fetchBills();
     fetchBranding();
+    fetchVendorItems();
+    fetchPurchaseOrders();
   }, [token]);
 
   const handleBillClick = (bill: VendorBill) => {
@@ -928,10 +963,44 @@ export default function VendorBillsPage() {
   const updateItem = (index: number, field: keyof BillItem, value: any) => {
     setBillForm((prev) => {
       const items = [...prev.items];
-      items[index] = { ...items[index], [field]: value };
-      items[index].amount = items[index].quantity * items[index].rate;
+      const currentItem = { ...items[index], [field]: value };
+
+      // If item selection changed, update other fields
+      if (field === "name" && vendorItems.length > 0) {
+        const selectedItem = vendorItems.find(vi => vi.name === value);
+        if (selectedItem) {
+          currentItem.description = selectedItem.description || "";
+          currentItem.rate = selectedItem.rate || 0;
+          currentItem.hsnSac = selectedItem.hsnSac || "";
+        }
+      }
+
+      currentItem.amount = currentItem.quantity * currentItem.rate;
+      items[index] = currentItem;
       return { ...prev, items };
     });
+  };
+
+  const handlePOChange = (poId: string) => {
+    const selectedPO = purchaseOrders.find(po => po.id === poId);
+    if (selectedPO) {
+      setBillForm(prev => ({
+        ...prev,
+        purchaseOrderId: poId,
+        referenceNumber: selectedPO.purchaseOrderNumber,
+        items: selectedPO.items.map((item: any) => ({
+          name: item.itemName || item.name,
+          description: item.description || "",
+          hsnSac: item.hsnSac || "",
+          quantity: item.quantity,
+          rate: item.rate,
+          taxAmount: item.taxAmount || 0,
+          amount: item.amount
+        }))
+      }));
+    } else {
+      setBillForm(prev => ({ ...prev, purchaseOrderId: poId }));
+    }
   };
 
   const addItem = () => {
@@ -1098,6 +1167,24 @@ export default function VendorBillsPage() {
           />
         </div>
         <div>
+          <Label>Purchase Order</Label>
+          <Select 
+            value={billForm.purchaseOrderId || "none"} 
+            onValueChange={(val) => handlePOChange(val === "none" ? "" : val)}
+            disabled={isEdit}
+          >
+            <SelectTrigger data-testid="select-purchase-order">
+              <SelectValue placeholder="Select Purchase Order" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {purchaseOrders.map(po => (
+                <SelectItem key={po.id} value={po.id}>{po.purchaseOrderNumber}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
           <Label>Reference Number</Label>
           <Input
             value={billForm.referenceNumber}
@@ -1133,39 +1220,75 @@ export default function VendorBillsPage() {
             <Plus className="h-3 w-3 mr-1" /> Add Item
           </Button>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {billForm.items.map((item, i) => (
-            <div key={i} className="grid grid-cols-[1fr_80px_100px_100px_32px] gap-2 items-center">
-              <Input
-                placeholder="Item name / description"
-                value={item.name || item.description}
-                onChange={(e) => updateItem(i, "name", e.target.value)}
-                data-testid={`input-item-name-${i}`}
-              />
-              <Input
-                type="number"
-                placeholder="Qty"
-                value={item.quantity}
-                onChange={(e) => updateItem(i, "quantity", parseFloat(e.target.value) || 0)}
-                data-testid={`input-item-qty-${i}`}
-              />
-              <Input
-                type="number"
-                placeholder="Rate"
-                value={item.rate}
-                onChange={(e) => updateItem(i, "rate", parseFloat(e.target.value) || 0)}
-                data-testid={`input-item-rate-${i}`}
-              />
-              <div className="text-sm font-medium text-right">{formatCurrency(item.amount)}</div>
-              {billForm.items.length > 1 && (
-                <Button variant="ghost" size="icon" onClick={() => removeItem(i)} className="text-red-500" data-testid={`button-remove-item-${i}`}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              )}
+            <div key={i} className="p-3 border rounded-md bg-slate-50/50 space-y-3 relative">
+              <div className="grid grid-cols-[1fr_100px_100px_32px] gap-2 items-start">
+                <div>
+                  <Label className="text-[10px] uppercase font-bold text-slate-500 mb-1">Item Name *</Label>
+                  <Select 
+                    value={item.name} 
+                    onValueChange={(val) => updateItem(i, "name", val)}
+                  >
+                    <SelectTrigger data-testid={`input-item-name-${i}`}>
+                      <SelectValue placeholder="Select an item" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendorItems.map(vi => (
+                        <SelectItem key={vi.id} value={vi.name}>{vi.name}</SelectItem>
+                      ))}
+                      {item.name && !vendorItems.find(vi => vi.name === item.name) && (
+                        <SelectItem value={item.name}>{item.name}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[10px] uppercase font-bold text-slate-500 mb-1">Quantity</Label>
+                  <Input
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) => updateItem(i, "quantity", parseFloat(e.target.value) || 0)}
+                    data-testid={`input-item-qty-${i}`}
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] uppercase font-bold text-slate-500 mb-1">Rate</Label>
+                  <Input
+                    type="number"
+                    value={item.rate}
+                    onChange={(e) => updateItem(i, "rate", parseFloat(e.target.value) || 0)}
+                    data-testid={`input-item-rate-${i}`}
+                  />
+                </div>
+                <div className="pt-7">
+                  {billForm.items.length > 1 && (
+                    <Button variant="ghost" size="icon" onClick={() => removeItem(i)} className="text-red-500 h-8 w-8" data-testid={`button-remove-item-${i}`}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-[1fr_120px] gap-2 items-center">
+                <Input
+                  placeholder="Description"
+                  value={item.description}
+                  onChange={(e) => updateItem(i, "description", e.target.value)}
+                  className="h-8 text-xs"
+                />
+                <div className="text-sm font-bold text-right text-slate-900 pr-2">
+                  {formatCurrency(item.amount)}
+                </div>
+              </div>
             </div>
           ))}
         </div>
-        <div className="text-right mt-2 font-semibold">Total: {formatCurrency(billTotal)}</div>
+        <div className="flex justify-end mt-4 pt-4 border-t">
+          <div className="text-right">
+            <span className="text-sm text-slate-500 uppercase font-bold mr-4">Total Amount</span>
+            <span className="text-lg font-black text-sidebar">{formatCurrency(billTotal)}</span>
+          </div>
+        </div>
       </div>
 
       <div>
@@ -1175,6 +1298,7 @@ export default function VendorBillsPage() {
           onChange={(e) => setBillForm((prev) => ({ ...prev, notes: e.target.value }))}
           placeholder="Optional notes"
           data-testid="input-bill-notes"
+          className="min-h-[80px]"
         />
       </div>
       <div>
@@ -1184,6 +1308,7 @@ export default function VendorBillsPage() {
           onChange={(e) => setBillForm((prev) => ({ ...prev, terms: e.target.value }))}
           placeholder="Terms and conditions"
           data-testid="input-bill-terms"
+          className="min-h-[80px]"
         />
       </div>
     </div>
