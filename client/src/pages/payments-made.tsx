@@ -581,6 +581,38 @@ export default function PaymentsMade() {
     }
   };
 
+  const handleDownloadPDF = async (payment: PaymentMade) => {
+    if (payment.vendorStatus?.toLowerCase() !== "confirmed" && payment.status?.toLowerCase() !== "verified") {
+      toast({
+        title: "Download Restricted",
+        description: "The payment receipt must be verified by the vendor before downloading the PDF.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toast({ title: "Preparing download...", description: "Please wait while we generate your PDF." });
+    try {
+      // Existing PDF generation logic
+      const html2canvas = (await import("html2canvas")).default;
+      const { jsPDF } = await import("jspdf");
+      const element = document.getElementById("payment-receipt-content");
+      if (!element) return;
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Payment-${payment.paymentNumber || payment.id}.pdf`);
+      toast({ title: "Success", description: "Payment receipt downloaded." });
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      toast({ title: "Error", description: "Failed to generate PDF.", variant: "destructive" });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status?.toUpperCase()) {
       case 'PAID':

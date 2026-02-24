@@ -496,6 +496,36 @@ function VendorBillDetailPanel({
     }
   };
 
+  const [vendorItems, setVendorItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchVendorItems = async () => {
+      try {
+        const res = await fetch("/api/vendor/items", {
+          headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Adjust based on API structure: data.data.items
+          if (data.success) {
+            const items = Array.isArray(data.data) ? data.data : (data.data.items || []);
+            setVendorItems(items);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load vendor items:", err);
+      }
+    };
+    fetchVendorItems();
+  }, []);
+
+  const canEdit = bill?.status === "DRAFT" || bill?.status === "Pending Approval" || bill?.status === "REJECTED" || bill?.status === "Rejected";
+
+  const canEdit = bill.status === "DRAFT" || bill.status === "Pending Approval" || bill.status === "REJECTED" || bill.status === "Rejected";
+  const canSubmitToAdmin = bill.status === "DRAFT";
+  const canResubmit = bill.status === "REJECTED" || bill.status === "Rejected";
+  const isRejected = bill.status === "REJECTED" || bill.status === "Rejected";
+
   const handleEdit = () => {
     if (!bill) return;
     setBillForm({
@@ -993,16 +1023,16 @@ export default function VendorBillsPage() {
       const currentItem = { ...items[index], [field]: value };
 
       // If item selection changed, update other fields
-      if (field === "name" && vendorItems.length > 0) {
-        const selectedItem = vendorItems.find(vi => vi.name === value);
+      if (field === "name" && (vendorItems || []).length > 0) {
+        const selectedItem = (vendorItems || []).find(vi => vi.name === value);
         if (selectedItem) {
           currentItem.description = selectedItem.description || "";
-          currentItem.rate = selectedItem.rate || 0;
+          currentItem.rate = Number(selectedItem.rate) || 0;
           currentItem.hsnSac = selectedItem.hsnSac || "";
         }
       }
 
-      currentItem.amount = currentItem.quantity * currentItem.rate;
+      currentItem.amount = (currentItem.quantity || 0) * (currentItem.rate || 0);
       items[index] = currentItem;
       return { ...prev, items };
     });
@@ -1262,10 +1292,10 @@ export default function VendorBillsPage() {
                       <SelectValue placeholder="Select an item" />
                     </SelectTrigger>
                     <SelectContent>
-                      {vendorItems.map(vi => (
+                      {(vendorItems || []).map((vi: any) => (
                         <SelectItem key={vi.id} value={vi.name}>{vi.name}</SelectItem>
                       ))}
-                      {item.name && !vendorItems.find(vi => vi.name === item.name) && (
+                      {item.name && !(vendorItems || []).find((vi: any) => vi.name === item.name) && (
                         <SelectItem value={item.name}>{item.name}</SelectItem>
                       )}
                     </SelectContent>

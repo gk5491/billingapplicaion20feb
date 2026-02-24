@@ -349,9 +349,42 @@ function PaymentDetailPanel({
   const { toast } = useToast();
   const status = getEffectiveStatus(payment);
   const isPending = status.toLowerCase().includes("pending");
-  const isConfirmed = status.toLowerCase().includes("confirm");
+  const isConfirmed = status.toLowerCase().includes("confirm") || status.toLowerCase().includes("paid");
   const isDisputed = status.toLowerCase().includes("dispute") && !status.toLowerCase().includes("resolve");
   const billPayments = getBillPaymentsArray(payment);
+
+  const [receiptStatus, setReceiptStatus] = useState(getEffectiveStatus(payment));
+  const [isSendingReceipt, setIsSendingReceipt] = useState(false);
+
+  // Synchronize state with payment prop changes
+  useEffect(() => {
+    setReceiptStatus(getEffectiveStatus(payment));
+  }, [payment]);
+
+  const handleStatusChange = (newStatus: string) => {
+    setReceiptStatus(newStatus);
+  };
+
+  const handleSendReceipt = async () => {
+    setIsSendingReceipt(true);
+    try {
+      const res = await fetch(`/api/vendor/payments/${payment.id}/receipt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${useAuthStore.getState().token}` },
+        body: JSON.stringify({ status: receiptStatus }),
+      });
+      if (res.ok) {
+        toast({ title: "Receipt sent successfully" });
+        onGenerateReceipt(payment); // Refresh data
+      } else {
+        toast({ title: "Failed to send receipt", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error sending receipt", variant: "destructive" });
+    } finally {
+      setIsSendingReceipt(false);
+    }
+  };
 
   const handlePrint = async () => {
     toast({ title: "Preparing print...", description: "Opening print dialog." });
@@ -483,9 +516,30 @@ function PaymentDetailPanel({
         )}
 
         <div className="px-4 py-3 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase">Vendor Status:</span>
-            <VendorStatusBadge status={status} />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 uppercase">Vendor Status:</span>
+              <Select value={receiptStatus} onValueChange={handleStatusChange}>
+                <SelectTrigger className="h-8 w-[150px]">
+                  <SelectValue placeholder="Update Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pending Verification">Pending Verification</SelectItem>
+                  <SelectItem value="Paid">Paid</SelectItem>
+                  <SelectItem value="Confirmed">Confirmed</SelectItem>
+                  <SelectItem value="Disputed">Disputed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button 
+              size="sm" 
+              className="h-8 gap-1.5 bg-sidebar text-white hover:bg-sidebar/90" 
+              onClick={handleSendReceipt}
+              disabled={isSendingReceipt}
+            >
+              {isSendingReceipt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Send Receipt
+            </Button>
           </div>
         </div>
 

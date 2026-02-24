@@ -335,6 +335,13 @@ function VendorPODetailPanel({
 
   const responseStatus = getVendorResponseLabel();
 
+  const onConvertToBill = () => {
+    if (!purchaseOrder) return;
+    setLocation(`/vendor/bills?convertPoId=${purchaseOrder.id}`);
+  };
+
+  const canConvertToBill = purchaseOrder.status?.toLowerCase() === "accepted";
+
   return (
     <div className="h-full flex flex-col bg-white border-l border-slate-200 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
@@ -410,7 +417,7 @@ function VendorPODetailPanel({
             </Button>
           </>
         )}
-        {purchaseOrder.status?.toLowerCase() === "accepted" && (
+        {canConvertToBill && (
           <>
             <div className="w-px h-4 bg-slate-200 mx-1" />
             <Button
