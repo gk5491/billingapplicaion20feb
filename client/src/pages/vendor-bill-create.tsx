@@ -87,6 +87,8 @@ interface BillItem {
   customerDetails?: string;
   amount: number;
   availableQuantity?: number;
+  unit?: string;
+  hsnSac?: string;
 }
 
 interface Account {
@@ -354,6 +356,8 @@ export default function VendorBillCreate() {
         customerDetails: "none",
         amount: amount,
         availableQuantity: vendorItem?.availableQuantity,
+        unit: vendorItem?.unit || vendorItem?.usageUnit || item.unit || "pcs",
+        hsnSac: vendorItem?.hsnSac || item.hsnSac || "",
       };
     });
 
@@ -511,12 +515,14 @@ export default function VendorBillCreate() {
               itemName: vendorItem.name,
               itemId: vendorItem.id,
               description: vendorItem.purchaseDescription || vendorItem.description || "",
-              account: vendorItem.purchaseAccount || item.account || "",
+              account: vendorItem.purchaseAccount || item.account || "Material Purchases",
               rate: rate,
               tax: taxRateStr,
               taxAmount: (amount * taxRate) / 100,
               amount: amount,
               availableQuantity: vendorItem.availableQuantity,
+              unit: vendorItem.unit || vendorItem.usageUnit || "pcs",
+              hsnSac: vendorItem.hsnSac || "",
             };
           }
           return item;
@@ -882,36 +888,46 @@ export default function VendorBillCreate() {
                         return (
                           <TableRow key={item.id}>
                             <TableCell>
-                              <Select
-                                value={item.itemName || ""}
-                                onValueChange={(value) => {
-                                  const vendorItem = vendorItems.find(p => p.name === value);
-                                  if (vendorItem) {
-                                    handleVendorItemSelect(item.id, vendorItem.id);
-                                  }
-                                }}
-                              >
-                                <SelectTrigger className="text-sm" data-testid={`select-item-${item.id}`}>
-                                  <SelectValue placeholder={loadingItems ? "Loading items..." : "Select an item"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {loadingItems ? (
-                                    <SelectItem value="loading" disabled>Loading items...</SelectItem>
-                                  ) : vendorItems.length === 0 ? (
-                                    <SelectItem value="none" disabled>No items available</SelectItem>
-                                  ) : (
-                                    vendorItems.map(vi => {
-                                      const displayPrice = parseRateValue(vi.rate) || vi.costPrice || vi.sellingPrice || 0;
-                                      return (
-                                        <SelectItem key={vi.id} value={vi.name}>
-                                          {vi.name} {vi.usageUnit ? `(${vi.usageUnit})` : ''} - ₹{displayPrice.toLocaleString('en-IN')}
-                                          {vi.availableQuantity !== undefined ? ` [Qty: ${vi.availableQuantity}]` : ''}
-                                        </SelectItem>
-                                      );
-                                    })
-                                  )}
-                                </SelectContent>
-                              </Select>
+                              <div className="space-y-1">
+                                <Select
+                                  value={item.itemName || ""}
+                                  onValueChange={(value) => {
+                                    const vendorItem = vendorItems.find(p => p.name === value);
+                                    if (vendorItem) {
+                                      handleVendorItemSelect(item.id, vendorItem.id);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="text-sm" data-testid={`select-item-${item.id}`}>
+                                    <SelectValue placeholder={loadingItems ? "Loading items..." : "Select an item"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {loadingItems ? (
+                                      <SelectItem value="loading" disabled>Loading items...</SelectItem>
+                                    ) : vendorItems.length === 0 ? (
+                                      <SelectItem value="none" disabled>No items available</SelectItem>
+                                    ) : (
+                                      vendorItems.map(vi => {
+                                        const displayPrice = parseRateValue(vi.purchaseRate) || vi.costPrice || 0;
+                                        return (
+                                          <SelectItem key={vi.id} value={vi.name}>
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">{vi.name} {vi.sku ? `(${vi.sku})` : ''}</span>
+                                              <span className="text-[10px] text-slate-500">
+                                                Rate: ₹{displayPrice.toLocaleString('en-IN')} | Unit: {vi.unit || vi.usageUnit || 'pcs'} 
+                                                {vi.trackInventory ? ` | Stock: ${vi.availableQuantity || 0}` : ''}
+                                              </span>
+                                            </div>
+                                          </SelectItem>
+                                        );
+                                      })
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                                {item.hsnSac && (
+                                  <p className="text-[10px] text-slate-400 px-1">HSN: {item.hsnSac}</p>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               <AccountSelectDropdown
