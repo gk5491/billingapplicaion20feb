@@ -10277,7 +10277,7 @@ export async function registerRoutes(
         id: String(Date.now()),
         timestamp: new Date().toISOString(),
         action: "receipt_sent",
-        description: `Payment receipt sent by vendor (Status: ${bill.paymentReceiptStatus})`,
+        description: `Payment receipt updated by vendor (Status: ${bill.paymentReceiptStatus})`,
         user: "Vendor"
       });
 
@@ -10285,138 +10285,7 @@ export async function registerRoutes(
       writeBillsData(data);
       res.json({ success: true, data: bill });
     } catch (error) {
-      res.status(500).json({ success: false, message: "Failed to send receipt" });
-    }
-  });
-
-  // Admin approval/rejection route
-  app.post("/api/admin/bills/:id/status", authenticate, requireRole("admin"), async (req: Request, res: Response) => {
-    try {
-      const { status, reason } = req.body;
-      if (!["Approved", "Rejected"].includes(status)) {
-        return res.status(400).json({ success: false, message: "Invalid status" });
-      }
-      if (status === "Rejected" && !reason) {
-        return res.status(400).json({ success: false, message: "Reason is required for rejection" });
-      }
-
-      const data = readBillsData();
-      const billIndex = data.bills.findIndex((b: any) => b.id === req.params.id);
-      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
-
-      const bill = data.bills[billIndex];
-      const oldStatus = bill.status;
-      
-      bill.status = status;
-      bill.rejectionReason = reason || null;
-      bill.updatedAt = new Date().toISOString();
-
-      if (!bill.activityLogs) bill.activityLogs = [];
-      bill.activityLogs.push({
-        id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        action: status.toLowerCase(),
-        description: `Bill ${status.toLowerCase()} by admin${reason ? ": " + reason : ""}`,
-        user: "Admin"
-      });
-
-      // Stock Reversal if Rejected
-      if (status === "Rejected" && (oldStatus === "Submitted" || oldStatus === "Pending Approval")) {
-        const vendorItems = readVendorItems();
-        for (const item of bill.items) {
-          const vendorItemIndex = vendorItems.findIndex((vi: any) => (vi.id === item.itemId || vi.name === item.itemName) && String(vi.vendorId) === String(bill.vendorId));
-          if (vendorItemIndex !== -1) {
-            vendorItems[vendorItemIndex].availableQuantity = Number(vendorItems[vendorItemIndex].availableQuantity) + Number(item.quantity);
-          }
-        }
-        writeVendorItems(vendorItems);
-      }
-
-      data.bills[billIndex] = bill;
-      writeBillsData(data);
-      res.json({ success: true, data: bill });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Failed to update bill status" });
-    }
-  });
-
-  // Admin approval/rejection route
-  app.post("/api/admin/bills/:id/status", authenticate, requireRole("admin"), async (req: Request, res: Response) => {
-    try {
-      const { status, reason } = req.body;
-      if (!["Approved", "Rejected"].includes(status)) {
-        return res.status(400).json({ success: false, message: "Invalid status" });
-      }
-      if (status === "Rejected" && !reason) {
-        return res.status(400).json({ success: false, message: "Reason is required for rejection" });
-      }
-
-      const data = readBillsData();
-      const billIndex = data.bills.findIndex((b: any) => b.id === req.params.id);
-      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
-
-      const bill = data.bills[billIndex];
-      const oldStatus = bill.status;
-      
-      bill.status = status;
-      bill.rejectionReason = reason || null;
-      bill.updatedAt = new Date().toISOString();
-
-      if (!bill.activityLogs) bill.activityLogs = [];
-      bill.activityLogs.push({
-        id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        action: status.toLowerCase(),
-        description: `Bill ${status.toLowerCase()} by admin${reason ? ": " + reason : ""}`,
-        user: "Admin"
-      });
-
-      // Stock Reversal if Rejected
-      if (status === "Rejected" && (oldStatus === "Submitted" || oldStatus === "Pending Approval")) {
-        const vendorItems = readVendorItems();
-        for (const item of bill.items) {
-          const vendorItemIndex = vendorItems.findIndex((vi: any) => (vi.id === item.itemId || vi.name === item.itemName) && String(vi.vendorId) === String(bill.vendorId));
-          if (vendorItemIndex !== -1) {
-            vendorItems[vendorItemIndex].availableQuantity = Number(vendorItems[vendorItemIndex].availableQuantity) + Number(item.quantity);
-          }
-        }
-        writeVendorItems(vendorItems);
-      }
-
-      data.bills[billIndex] = bill;
-      writeBillsData(data);
-      res.json({ success: true, data: bill });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Failed to update bill status" });
-    }
-  });
-
-  // Payment Receipt logic (Simplified for JSON storage)
-  app.post("/api/vendor/payments/:id/receipt", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
-    try {
-      const { status } = req.body;
-      const data = readBillsData();
-      const billIndex = data.bills.findIndex((b: any) => b.id === req.params.id);
-      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
-
-      const bill = data.bills[billIndex];
-      bill.paymentReceiptStatus = status || "Verified";
-      bill.updatedAt = new Date().toISOString();
-
-      if (!bill.activityLogs) bill.activityLogs = [];
-      bill.activityLogs.push({
-        id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        action: "receipt_sent",
-        description: `Payment receipt sent by vendor (Status: ${bill.paymentReceiptStatus})`,
-        user: "Vendor"
-      });
-
-      data.bills[billIndex] = bill;
-      writeBillsData(data);
-      res.json({ success: true, data: bill });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Failed to send receipt" });
+      res.status(500).json({ success: false, message: "Failed to update receipt status" });
     }
   });
 

@@ -1018,7 +1018,7 @@ export default function VendorBillsPage() {
   };
 
   const resetForm = () => {
-    setBillForm({ ...emptyBillForm, items: [{ name: "", description: "", hsnSac: "", quantity: 1, rate: 0, taxCode: "", taxAmount: 0, amount: 0 }] });
+    setBillForm({ ...emptyBillForm, purchaseOrderId: "", items: [{ name: "", description: "", hsnSac: "", quantity: 1, rate: 0, taxCode: "", taxAmount: 0, amount: 0 }] });
     setEditBillId(null);
   };
 
@@ -1091,6 +1091,7 @@ export default function VendorBillsPage() {
 
   const openEditDialog = (bill: VendorBill) => {
     setBillForm({
+      purchaseOrderId: bill.purchaseOrderId || "",
       billNumber: bill.billNumber,
       billDate: bill.billDate ? bill.billDate.split("T")[0] : "",
       dueDate: bill.dueDate ? bill.dueDate.split("T")[0] : "",
