@@ -17,6 +17,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -58,6 +65,7 @@ import {
   CheckCircle2,
   XCircle,
   Filter,
+  Send,
 } from "lucide-react";
 
 interface PaymentRecord {
@@ -173,6 +181,12 @@ function getBillPaymentsArray(p: PaymentRecord): Array<{ billNumber?: string; bi
 
 function VendorStatusBadge({ status }: { status: string }) {
   const normalized = status?.toLowerCase() || "";
+  if (normalized.includes("paid")) {
+    return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50" data-testid="badge-status-paid">Paid</Badge>;
+  }
+  if (normalized.includes("verify")) {
+    return <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50" data-testid="badge-status-verified">Verified</Badge>;
+  }
   if (normalized.includes("confirm")) {
     return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50" data-testid="badge-status-confirmed">Confirmed</Badge>;
   }
@@ -185,7 +199,7 @@ function VendorStatusBadge({ status }: { status: string }) {
   if (normalized.includes("cancel")) {
     return <Badge variant="outline" className="text-slate-600 border-slate-200 bg-slate-50" data-testid="badge-status-cancelled">Cancelled</Badge>;
   }
-  return <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50" data-testid="badge-status-pending">Pending</Badge>;
+  return <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50" data-testid="badge-status-pending">Pending Verification</Badge>;
 }
 
 function PaymentReceiptPDFView({ payment, branding, organization }: { payment: PaymentRecord; branding?: any; organization?: any }) {
@@ -345,6 +359,13 @@ function PaymentDetailPanel({
   branding?: any;
   organization?: any;
 }) {
+  const normalizeReceiptStatus = (rawStatus?: string) => {
+    const normalized = (rawStatus || "").toLowerCase();
+    if (normalized.includes("paid")) return "Paid";
+    if (normalized.includes("verif") || normalized.includes("confirm")) return "Verified";
+    return "Pending Verification";
+  };
+
   const [showPdfView, setShowPdfView] = useState(true);
   const { toast } = useToast();
   const status = getEffectiveStatus(payment);
@@ -353,12 +374,12 @@ function PaymentDetailPanel({
   const isDisputed = status.toLowerCase().includes("dispute") && !status.toLowerCase().includes("resolve");
   const billPayments = getBillPaymentsArray(payment);
 
-  const [receiptStatus, setReceiptStatus] = useState(getEffectiveStatus(payment));
+  const [receiptStatus, setReceiptStatus] = useState(normalizeReceiptStatus(getEffectiveStatus(payment)));
   const [isSendingReceipt, setIsSendingReceipt] = useState(false);
 
   // Synchronize state with payment prop changes
   useEffect(() => {
-    setReceiptStatus(getEffectiveStatus(payment));
+    setReceiptStatus(normalizeReceiptStatus(getEffectiveStatus(payment)));
   }, [payment]);
 
   const handleStatusChange = (newStatus: string) => {
@@ -525,9 +546,8 @@ function PaymentDetailPanel({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Pending Verification">Pending Verification</SelectItem>
+                  <SelectItem value="Verified">Verified</SelectItem>
                   <SelectItem value="Paid">Paid</SelectItem>
-                  <SelectItem value="Confirmed">Confirmed</SelectItem>
-                  <SelectItem value="Disputed">Disputed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -809,7 +829,7 @@ export default function VendorPaymentHistoryPage() {
       result = result.filter((p) => {
         const s = getEffectiveStatus(p).toLowerCase();
         if (statusFilter === "pending") return s.includes("pending");
-        if (statusFilter === "confirmed") return s.includes("confirm");
+        if (statusFilter === "confirmed") return s.includes("confirm") || s.includes("verified") || s.includes("paid");
         if (statusFilter === "disputed") return s.includes("dispute");
         return true;
       });

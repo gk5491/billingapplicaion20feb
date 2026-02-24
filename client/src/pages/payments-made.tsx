@@ -101,6 +101,7 @@ interface PaymentMade {
   depositTo?: string;
   paymentType: string;
   status: string;
+  paymentReceiptStatus?: string;
   reference?: string;
   billPayments?: Record<string, BillPayment> | BillPayment[];
   sourceOfSupply?: string;
@@ -186,6 +187,7 @@ export default function PaymentsMade() {
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
   const [paymentToVoid, setPaymentToVoid] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMade | null>(null);
+  const [showPdfView, setShowPdfView] = useState(true);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [currentView, setCurrentView] = useState("all");
 
@@ -581,36 +583,15 @@ export default function PaymentsMade() {
     }
   };
 
-  const handleDownloadPDF = async (payment: PaymentMade) => {
-    if (payment.vendorStatus?.toLowerCase() !== "confirmed" && payment.status?.toLowerCase() !== "verified") {
-      toast({
-        title: "Download Restricted",
-        description: "The payment receipt must be verified by the vendor before downloading the PDF.",
-        variant: "destructive"
-      });
-      return;
+  const getReceiptStatusBadge = (status?: string) => {
+    const normalized = (status || "").toLowerCase();
+    if (normalized === "paid") {
+      return <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">Paid</Badge>;
     }
-    
-    toast({ title: "Preparing download...", description: "Please wait while we generate your PDF." });
-    try {
-      // Existing PDF generation logic
-      const html2canvas = (await import("html2canvas")).default;
-      const { jsPDF } = await import("jspdf");
-      const element = document.getElementById("payment-receipt-content");
-      if (!element) return;
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff" });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Payment-${payment.paymentNumber || payment.id}.pdf`);
-      toast({ title: "Success", description: "Payment receipt downloaded." });
-    } catch (error) {
-      console.error("PDF generation error:", error);
-      toast({ title: "Error", description: "Failed to generate PDF.", variant: "destructive" });
+    if (normalized === "verified" || normalized === "verify") {
+      return <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">Verified</Badge>;
     }
+    return <Badge variant="outline" className="text-amber-700 border-amber-200 bg-amber-50">Pending Verification</Badge>;
   };
 
   const getStatusBadge = (status: string) => {
@@ -1167,6 +1148,9 @@ export default function PaymentsMade() {
                             <TableCell className="text-sm text-slate-600">{getBillNumbers(payment)}</TableCell>
                             <TableCell className="text-sm capitalize">{getPaymentModeLabel(payment.paymentMode)}</TableCell>
                             <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                            <TableCell>
+                              {getReceiptStatusBadge(payment.paymentReceiptStatus)}
+                            </TableCell>
                             <TableCell className="text-sm text-right font-semibold">
                               {formatCurrency(payment.paymentAmount)}
                             </TableCell>

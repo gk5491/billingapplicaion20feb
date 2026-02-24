@@ -106,6 +106,7 @@ interface Tax {
 interface VendorItem {
   id: string;
   name: string;
+  sku?: string;
   type?: string;
   unit?: string;
   usageUnit?: string;
@@ -121,6 +122,7 @@ interface VendorItem {
   interStateTax?: string;
   purchaseAccount?: string;
   salesAccount?: string;
+  trackInventory?: boolean;
   availableQuantity?: number;
   isActive?: boolean;
 }
@@ -180,6 +182,7 @@ export default function VendorBillCreate() {
   });
 
   useEffect(() => {
+    if (!token) return;
     fetchOrganization();
     fetchPurchaseOrders();
     fetchAccounts();
@@ -189,7 +192,7 @@ export default function VendorBillCreate() {
     if (billIdFromUrl) {
       fetchBillForEdit(billIdFromUrl);
     }
-  }, []);
+  }, [token, billIdFromUrl]);
 
   useEffect(() => {
     if (purchaseOrderIdFromUrl && purchaseOrders.length > 0 && !formData.purchaseOrderId) {
@@ -199,7 +202,9 @@ export default function VendorBillCreate() {
 
   const fetchOrganization = async () => {
     try {
-      const response = await fetch('/api/organizations');
+      const response = await fetch('/api/organizations', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
       if (response.ok) {
         const data = await response.json();
         const orgs = data.data || [];
@@ -219,17 +224,18 @@ export default function VendorBillCreate() {
       });
       if (response.ok) {
         const data = await response.json();
-        const allPOs = data.data || [];
+        const allPOs = Array.isArray(data.data) ? data.data : (Array.isArray(data.data?.purchaseOrders) ? data.data.purchaseOrders : []);
         // Exclude purchase orders that are already converted to bills
         const billsRes = await fetch('/api/vendor/bills', { headers: { 'Authorization': `Bearer ${token}` } });
         let vendorBills: any[] = [];
         if (billsRes.ok) {
           const billsData = await billsRes.json();
-          vendorBills = billsData.data || [];
+          vendorBills = Array.isArray(billsData.data) ? billsData.data : [];
         }
-        const convertedPoIds = new Set(vendorBills.map(b => b.purchaseOrderId).filter(Boolean));
+        const convertedPoIds = new Set(vendorBills.map(b => String(b.purchaseOrderId)).filter(Boolean));
         const eligiblePOs = allPOs.filter((po: PurchaseOrder) =>
-          (po.status === "Accepted" || po.status === "ISSUED" || po.status === "Issued") && !convertedPoIds.has(po.id)
+          ["accepted", "issued", "sent"].includes(String(po.status || "").toLowerCase()) &&
+          (billIdFromUrl ? true : !convertedPoIds.has(String(po.id)))
         );
         setPurchaseOrders(eligiblePOs);
       }
@@ -246,7 +252,10 @@ export default function VendorBillCreate() {
       });
       if (response.ok) {
         const data = await response.json();
-        setVendorItems((data.data || []).filter((i: VendorItem) => i.isActive !== false));
+        const items = Array.isArray(data.data)
+          ? data.data
+          : (Array.isArray(data.data?.items) ? data.data.items : []);
+        setVendorItems(items.filter((i: VendorItem) => i.isActive !== false));
       }
     } catch (error) {
       console.error('Failed to fetch vendor items:', error);

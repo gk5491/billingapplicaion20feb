@@ -9823,7 +9823,8 @@ export async function registerRoutes(
   app.get("/api/receipts", authenticate, requireRole("admin"), async (req: Request, res: Response) => {
     try {
       const data = readVendorPaymentReceiptsData();
-      res.json({ success: true, data: data.receipts || [] });
+      const adminReceipts = (data.receipts || []).filter((r: any) => r.sentToAdmin === true);
+      res.json({ success: true, data: adminReceipts });
     } catch (error) {
       console.error("Failed to load receipts for admin:", error);
       res.status(500).json({ success: false, message: "Failed to load receipts" });
@@ -9833,7 +9834,7 @@ export async function registerRoutes(
   app.get("/api/receipts/:id", authenticate, requireRole("admin"), async (req: Request, res: Response) => {
     try {
       const data = readVendorPaymentReceiptsData();
-      const receipt = (data.receipts || []).find((r: any) => r.id === req.params.id);
+      const receipt = (data.receipts || []).find((r: any) => r.id === req.params.id && r.sentToAdmin === true);
       if (!receipt) return res.status(404).json({ success: false, message: "Receipt not found" });
       res.json({ success: true, data: receipt });
     } catch (error) {
@@ -10263,39 +10264,89 @@ export async function registerRoutes(
   // Payment Receipt logic (Simplified for JSON storage)
   app.post("/api/vendor/payments/:id/receipt", authenticate, requireRole("vendor"), async (req: Request, res: Response) => {
     try {
-      const { status } = req.body;
-      const data = readBillsData();
-      const billIndex = data.bills.findIndex((b: any) => b.id === req.params.id);
-      if (billIndex === -1) return res.status(404).json({ success: false, message: "Bill not found" });
+      const vendor = await getVendorFromUser(req);
+      if (!vendor) return res.status(403).json({ success: false, message: "Vendor not found" });
 
-      const bill = data.bills[billIndex];
-      bill.paymentReceiptStatus = status || "Verified";
-      bill.updatedAt = new Date().toISOString();
+      const requestedStatus = String(req.body?.status || "Verified").trim();
+      const normalizedStatus =
+        requestedStatus.toLowerCase() === "paid"
+          ? "Paid"
+          : requestedStatus.toLowerCase() === "verified" || requestedStatus.toLowerCase() === "verify"
+            ? "Verified"
+            : "Pending Verification";
+      const now = new Date().toISOString();
 
-      if (!bill.activityLogs) bill.activityLogs = [];
-      bill.activityLogs.push({
-        id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        action: "receipt_sent",
-        description: `Payment receipt updated by vendor (Status: ${bill.paymentReceiptStatus})`,
-        user: "Vendor"
-      });
+      const paymentsMadeData = readPaymentsMadeDataGlobal();
+      const paymentIndex = paymentsMadeData.paymentsMade.findIndex((p: any) => p.id === req.params.id);
+      if (paymentIndex === -1) return res.status(404).json({ success: false, message: "Payment not found" });
 
-      // Also update the payment in paymentsReceived.json if it exists
+      const payment = paymentsMadeData.paymentsMade[paymentIndex];
+      payment.paymentReceiptStatus = normalizedStatus;
+      payment.vendorStatus = normalizedStatus;
+      payment.receiptSentAt = now;
+      payment.updatedAt = now;
+      paymentsMadeData.paymentsMade[paymentIndex] = payment;
+      writePaymentsMadeDataGlobal(paymentsMadeData);
+
+      // Update linked bills with the same receipt status
       try {
-        const paymentsData = readPaymentsReceivedData();
-        const payment = paymentsData.paymentsReceived.find((p: any) => p.billId === bill.id || p.referenceNumber === bill.billNumber);
-        if (payment) {
-          payment.paymentReceiptStatus = bill.paymentReceiptStatus;
-          writePaymentsReceivedData(paymentsData);
+        const billsData = readBillsData();
+        const linkedBillIds: string[] = [];
+
+        if (payment.billId) linkedBillIds.push(String(payment.billId));
+        if (payment.billPayments && typeof payment.billPayments === "object") {
+          linkedBillIds.push(...Object.keys(payment.billPayments));
         }
-      } catch (err) {
-        console.error("Error updating payment receipt status in paymentsReceived:", err);
+        if (Array.isArray(payment.bills)) {
+          linkedBillIds.push(...payment.bills.map((b: any) => String(b.billId)).filter(Boolean));
+        }
+
+        billsData.bills = (billsData.bills || []).map((bill: any) => {
+          if (!linkedBillIds.includes(String(bill.id))) return bill;
+          const updatedBill = { ...bill, paymentReceiptStatus: normalizedStatus, updatedAt: now };
+          updatedBill.activityLogs = updatedBill.activityLogs || [];
+          updatedBill.activityLogs.push({
+            id: String(Date.now()),
+            timestamp: now,
+            action: "receipt_sent",
+            description: `Payment receipt updated by vendor (Status: ${normalizedStatus})`,
+            user: "Vendor",
+          });
+          return updatedBill;
+        });
+        writeBillsData(billsData);
+      } catch (billErr) {
+        console.error("Failed to update linked bill receipt status:", billErr);
       }
 
-      data.bills[billIndex] = bill;
-      writeBillsData(data);
-      res.json({ success: true, data: bill });
+      // Persist receipt entry for both vendor and admin sections
+      const receiptsData = readVendorPaymentReceiptsData();
+      receiptsData.receipts = receiptsData.receipts || [];
+      const existingReceiptIndex = receiptsData.receipts.findIndex(
+        (r: any) => String(r.paymentId) === String(payment.id) && String(r.vendorId) === String(vendor.id),
+      );
+      const upsertReceipt = {
+        id: existingReceiptIndex >= 0 ? receiptsData.receipts[existingReceiptIndex].id : String(Date.now()),
+        vendorId: vendor.id,
+        vendorName: vendor.displayName || vendor.companyName || payment.vendorName || "Vendor",
+        paymentId: payment.id,
+        paymentNumber: payment.paymentNumber || payment.id,
+        amount: Number(payment.paymentAmount || payment.amount || 0),
+        paymentStatus: normalizedStatus,
+        notes: req.body?.notes || receiptsData.receipts[existingReceiptIndex]?.notes || "",
+        sentToAdmin: true,
+        sentAt: now,
+        createdAt: existingReceiptIndex >= 0 ? receiptsData.receipts[existingReceiptIndex].createdAt : now,
+        updatedAt: now,
+      };
+      if (existingReceiptIndex >= 0) {
+        receiptsData.receipts[existingReceiptIndex] = { ...receiptsData.receipts[existingReceiptIndex], ...upsertReceipt };
+      } else {
+        receiptsData.receipts.push(upsertReceipt);
+      }
+      writeVendorPaymentReceiptsData(receiptsData);
+
+      res.json({ success: true, data: payment });
     } catch (error) {
       console.error("Error updating receipt status:", error);
       res.status(500).json({ success: false, message: "Failed to update receipt status" });

@@ -335,11 +335,6 @@ function VendorPODetailPanel({
 
   const responseStatus = getVendorResponseLabel();
 
-  const onConvertToBill = () => {
-    if (!purchaseOrder) return;
-    setLocation(`/vendor/bills?convertPoId=${purchaseOrder.id}`);
-  };
-
   const canConvertToBill = purchaseOrder.status?.toLowerCase() === "accepted";
 
   return (
@@ -680,6 +675,11 @@ export default function VendorPurchaseOrdersPage() {
 
   const handleClosePanel = () => {
     setSelectedPO(null);
+  };
+
+  const onConvertToBill = () => {
+    if (!selectedPO) return;
+    setLocation(`/vendor/bills/new?purchaseOrderId=${selectedPO.id}`);
   };
 
   const handleAccept = async () => {

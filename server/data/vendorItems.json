@@ -80,7 +80,7 @@
       "purchaseAccount": "",
       "incomeAccount": "Sales",
       "expenseAccount": "Cost of Goods Sold",
-      "availableQuantity": 10,
+      "availableQuantity": 0,
       "trackInventory": true,
       "inventoryAccount": "Inventory Asset",
       "reorderPoint": 30,

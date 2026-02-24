@@ -1,3 +1,18 @@
 {
-  "receipts": []
+  "receipts": [
+    {
+      "id": "1771923316187",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "paymentId": "pm-1771923271084",
+      "paymentNumber": "PM-00092",
+      "amount": 110,
+      "paymentStatus": "Paid",
+      "notes": "",
+      "sentToAdmin": true,
+      "sentAt": "2026-02-24T08:55:16.183Z",
+      "createdAt": "2026-02-24T08:55:16.183Z",
+      "updatedAt": "2026-02-24T08:55:16.183Z"
+    }
+  ]
 }

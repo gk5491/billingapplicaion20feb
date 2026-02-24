@@ -525,18 +525,7 @@ function VendorBillDetailPanel({
   const isRejected = bill?.status === "REJECTED" || bill?.status === "Rejected";
 
   const handleEdit = () => {
-    if (!bill) return;
-    setBillForm({
-      purchaseOrderId: bill.purchaseOrderId || "",
-      billNumber: bill.billNumber,
-      billDate: bill.billDate ? bill.billDate.split("T")[0] : "",
-      dueDate: bill.dueDate ? bill.dueDate.split("T")[0] : "",
-      referenceNumber: bill.referenceNumber || "",
-      notes: bill.notes || "",
-      terms: bill.terms || "",
-      items: bill.items && bill.items.length > 0 ? bill.items : [{ name: "", description: "", hsnSac: "", quantity: 1, rate: 0, taxCode: "", taxAmount: 0, amount: 0 }],
-    });
-    setShowEditDialog(true);
+    onEdit();
   };
 
   const handleDownloadPDF = async () => {
@@ -606,7 +595,7 @@ function VendorBillDetailPanel({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {canEdit && (
+        {canEditValue && (
           <>
             <div className="w-px h-4 bg-slate-200 mx-1" />
             <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs font-semibold text-slate-600" onClick={handleEdit} data-testid="button-edit-bill">
@@ -981,14 +970,10 @@ export default function VendorBillsPage() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const convertPoId = searchParams.get("convertPoId");
-    if (convertPoId && purchaseOrders.length > 0) {
-      const po = purchaseOrders.find(p => p.id === convertPoId);
-      if (po) {
-        handlePOChange(convertPoId);
-        setShowCreateDialog(true);
-      }
+    if (convertPoId) {
+      setLocation(`/vendor/bills/new?purchaseOrderId=${convertPoId}`);
     }
-  }, [purchaseOrders, window.location.search]);
+  }, [window.location.search]);
 
   const fetchBranding = async () => {
     try {
@@ -1428,8 +1413,7 @@ export default function VendorBillsPage() {
                   )}
                   <Button
                     onClick={() => {
-                      resetForm();
-                      setShowCreateDialog(true);
+                      setLocation("/vendor/bills/new");
                     }}
                     className={cn(
                       "bg-sidebar hover:bg-sidebar/90 gap-1.5 h-9 font-medium shadow-sm",
@@ -1458,8 +1442,7 @@ export default function VendorBillsPage() {
                     <p className="text-slate-500 mb-4 max-w-sm">Create your first bill to get started.</p>
                     <Button
                       onClick={() => {
-                        resetForm();
-                        setShowCreateDialog(true);
+                        setLocation("/vendor/bills/new");
                       }}
                       className="bg-sidebar hover:bg-sidebar/90 font-medium shadow-sm"
                       data-testid="button-create-first-bill"
@@ -1562,7 +1545,7 @@ export default function VendorBillsPage() {
             <VendorBillDetailPanel
               bill={selectedBill}
               onClose={handleClosePanel}
-              onEdit={() => openEditDialog(selectedBill)}
+              onEdit={() => setLocation(`/vendor/bills/new?billId=${selectedBill.id}`)}
               onResubmit={() => handleResubmit(selectedBill.id)}
               onSubmitToAdmin={() => handleSubmitToAdmin(selectedBill.id)}
               branding={branding}

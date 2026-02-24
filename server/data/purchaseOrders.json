@@ -1,6 +1,81 @@
 {
   "purchaseOrders": [
     {
+      "id": "1771923120522",
+      "purchaseOrderNumber": "PO-2025-0011",
+      "referenceNumber": "",
+      "date": "2026-02-24",
+      "deliveryDate": "",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "vendorAddress": {
+        "street1": "Kalwadi Phata",
+        "street2": "PCMC",
+        "city": "Pune",
+        "state": "[MH] - Maharashtra",
+        "pinCode": "41106",
+        "countryRegion": "India"
+      },
+      "deliveryAddress": {
+        "attention": "",
+        "street1": "",
+        "street2": "",
+        "city": "",
+        "state": "",
+        "pinCode": "",
+        "countryRegion": "India"
+      },
+      "deliveryAddressType": "organization",
+      "paymentTerms": "Due on Receipt",
+      "shipmentPreference": "",
+      "reverseCharge": false,
+      "items": [
+        {
+          "id": "1",
+          "itemId": "1770351067854",
+          "itemName": "Laptop",
+          "description": "",
+          "account": "input_tax_credits",
+          "quantity": 11,
+          "rate": 15000,
+          "tax": "gst_18",
+          "taxAmount": 29700,
+          "amount": 194700
+        }
+      ],
+      "subTotal": 165000,
+      "discountType": "percent",
+      "discountValue": 0,
+      "discountAmount": 0,
+      "taxType": "TDS",
+      "taxCategory": "none",
+      "taxAmount": 29700,
+      "adjustment": 0,
+      "adjustmentDescription": "",
+      "total": 194700,
+      "notes": "",
+      "termsAndConditions": "",
+      "attachments": [],
+      "status": "Accepted",
+      "receiveStatus": "YET TO BE RECEIVED",
+      "billedStatus": "YET TO BE BILLED",
+      "pdfTemplate": "Standard Template",
+      "createdAt": "2026-02-24T08:52:00.522Z",
+      "updatedAt": "2026-02-24T08:52:00.522Z",
+      "createdBy": "Admin User",
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-24T08:52:00.522Z",
+          "action": "created",
+          "description": "Purchase Order created for ₹1,94,700",
+          "user": "Admin User"
+        }
+      ],
+      "acceptedAt": "2026-02-24T08:52:12.042Z",
+      "acceptedBy": "priyanka k"
+    },
+    {
       "id": "1771910312648",
       "purchaseOrderNumber": "PO-2025-0010",
       "referenceNumber": "",
@@ -592,5 +667,5 @@
       "balanceDue": 17700
     }
   ],
-  "nextPurchaseOrderNumber": 11
+  "nextPurchaseOrderNumber": 12
 }

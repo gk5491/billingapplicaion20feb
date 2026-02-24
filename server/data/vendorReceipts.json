@@ -1,4 +1,29 @@
 {
-  "receipts": [],
-  "nextId": 1
+  "receipts": [
+    {
+      "id": "1",
+      "receiptNumber": "VREC-00001",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "paymentId": "pm-1771911909539",
+      "paymentNumber": "PM-00091",
+      "amount": 0,
+      "date": "2026-02-24T08:50:51.108Z",
+      "status": "Generated",
+      "createdAt": "2026-02-24T08:50:51.108Z"
+    },
+    {
+      "id": "2",
+      "receiptNumber": "VREC-00002",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "paymentId": "pm-1771923271084",
+      "paymentNumber": "PM-00092",
+      "amount": 0,
+      "date": "2026-02-24T08:55:16.213Z",
+      "status": "Generated",
+      "createdAt": "2026-02-24T08:55:16.213Z"
+    }
+  ],
+  "nextId": 3
 }

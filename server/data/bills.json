@@ -856,6 +856,102 @@
         }
       ],
       "amountPaid": 15000
+    },
+    {
+      "id": "1771923179667",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "billNumber": "18",
+      "orderNumber": "PO-2025-0011",
+      "billDate": "2026-02-24",
+      "dueDate": "2026-02-24",
+      "paymentTerms": "Due on Receipt",
+      "reverseCharge": false,
+      "subject": "Bill for Purchase Order #PO-2025-0011",
+      "notes": "",
+      "items": [
+        {
+          "id": "item-1771923136107-0",
+          "itemName": "Laptop",
+          "itemId": "1771911724472",
+          "description": "Laptop",
+          "account": "input_tax_credits",
+          "quantity": 10,
+          "rate": 110000,
+          "tax": "gst_18",
+          "taxAmount": 0,
+          "customerDetails": "none",
+          "amount": 1100000,
+          "availableQuantity": 10,
+          "unit": "pcs",
+          "hsnSac": ""
+        }
+      ],
+      "subTotal": 1100000,
+      "discountType": "percent",
+      "discountValue": 0,
+      "discountAmount": 0,
+      "taxType": "TDS",
+      "taxCategory": "none",
+      "taxAmount": 0,
+      "tcsType": "TCS",
+      "tcsCategory": "none",
+      "tcsValue": 0,
+      "tdsValue": 0,
+      "adjustment": 0,
+      "adjustmentDescription": "",
+      "total": 1100000,
+      "purchaseOrderId": "1771923120522",
+      "selectedPurchaseOrderId": "1771923120522",
+      "attachments": [],
+      "tcsAmount": 0,
+      "tdsAmount": 0,
+      "balanceDue": 1000000,
+      "status": "PARTIALLY_PAID",
+      "createdBy": "vendor",
+      "createdAt": "2026-02-24T08:52:59.667Z",
+      "updatedAt": "2026-02-24T08:58:12.276Z",
+      "paymentsRecorded": [
+        {
+          "paymentId": "direct-1771923271081",
+          "paymentNumber": "PM-00092",
+          "amount": 110,
+          "date": "2026-02-24",
+          "mode": "Cash"
+        },
+        {
+          "paymentId": "direct-1771923492276",
+          "paymentNumber": "PM-00093",
+          "amount": 99890,
+          "date": "2026-02-24",
+          "mode": "Cash"
+        }
+      ],
+      "amountPaid": 100000,
+      "activityLogs": [
+        {
+          "id": "1",
+          "timestamp": "2026-02-24T08:54:31.080Z",
+          "action": "payment",
+          "description": "Payment of ₹110 recorded",
+          "user": "Admin User"
+        },
+        {
+          "id": "1771923316185",
+          "timestamp": "2026-02-24T08:55:16.183Z",
+          "action": "receipt_sent",
+          "description": "Payment receipt updated by vendor (Status: Paid)",
+          "user": "Vendor"
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-02-24T08:58:12.276Z",
+          "action": "payment",
+          "description": "Payment of ₹99,890 recorded",
+          "user": "Admin User"
+        }
+      ],
+      "paymentReceiptStatus": "Paid"
     }
   ],
   "nextBillNumber": 18,

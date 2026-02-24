@@ -416,7 +416,74 @@
       "status": "PAID",
       "createdAt": "2026-02-24T05:45:09.532Z",
       "updatedAt": "2026-02-24T05:45:09.532Z"
+    },
+    {
+      "id": "pm-1771923271084",
+      "paymentNumber": "PM-00092",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 110,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-24",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #18",
+      "billPayments": {
+        "1771923179667": {
+          "billId": "1771923179667",
+          "billNumber": "18",
+          "billAmount": 1100000,
+          "amountPaid": 110
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-24T08:54:31.080Z",
+      "updatedAt": "2026-02-24T08:55:16.183Z",
+      "paymentReceiptStatus": "Paid",
+      "vendorStatus": "Paid",
+      "receiptSentAt": "2026-02-24T08:55:16.183Z"
+    },
+    {
+      "id": "pm-1771923492279",
+      "paymentNumber": "PM-00093",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 99890,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-24",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #18",
+      "billPayments": {
+        "1771923179667": {
+          "billId": "1771923179667",
+          "billNumber": "18",
+          "billAmount": 1100000,
+          "amountPaid": 99890
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-24T08:58:12.276Z",
+      "updatedAt": "2026-02-24T08:58:12.276Z"
     }
   ],
-  "nextPaymentNumber": 92
+  "nextPaymentNumber": 94
 }
