@@ -497,7 +497,6 @@ function VendorBillDetailPanel({
   };
 
   const handleEdit = () => {
-  const handleEdit = () => {
     if (!bill) return;
     setBillForm({
       purchaseOrderId: bill.purchaseOrderId || "",
