@@ -59,6 +59,36 @@
       "isActive": true,
       "createdAt": "2026-02-24T05:34:50.823Z",
       "updatedAt": "2026-02-24T05:34:50.823Z"
+    },
+    {
+      "name": "Laptop",
+      "type": "goods",
+      "sku": "",
+      "hsnSac": "",
+      "usageUnit": "",
+      "unit": "pcs",
+      "rate": "100000",
+      "purchaseRate": "110000",
+      "description": "",
+      "salesDescription": "Laptop",
+      "purchaseDescription": "Laptop",
+      "taxPreference": "taxable",
+      "taxable": true,
+      "intraStateTax": "",
+      "interStateTax": "",
+      "salesAccount": "",
+      "purchaseAccount": "",
+      "incomeAccount": "Sales",
+      "expenseAccount": "Cost of Goods Sold",
+      "availableQuantity": 10,
+      "trackInventory": true,
+      "inventoryAccount": "Inventory Asset",
+      "reorderPoint": 30,
+      "id": "1771911724472",
+      "vendorId": "4",
+      "isActive": true,
+      "createdAt": "2026-02-24T05:42:04.472Z",
+      "updatedAt": "2026-02-24T05:42:04.473Z"
     }
   ]
 }

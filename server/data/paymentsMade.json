@@ -384,7 +384,39 @@
       "status": "PAID",
       "createdAt": "2026-02-24T05:02:54.403Z",
       "updatedAt": "2026-02-24T05:02:54.403Z"
+    },
+    {
+      "id": "pm-1771911909539",
+      "paymentNumber": "PM-00091",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "gstTreatment": "",
+      "sourceOfSupply": "",
+      "destinationOfSupply": "",
+      "descriptionOfSupply": "",
+      "paymentAmount": 15000,
+      "reverseCharge": false,
+      "tds": "",
+      "paymentDate": "2026-02-24",
+      "paymentMode": "Cash",
+      "paidThrough": "Petty Cash",
+      "depositTo": "prepaid_expenses",
+      "reference": "",
+      "notes": "Payment for Bill #18",
+      "billPayments": {
+        "1771911762640": {
+          "billId": "1771911762640",
+          "billNumber": "18",
+          "billAmount": 25000,
+          "amountPaid": 15000
+        }
+      },
+      "paymentType": "bill_payment",
+      "paymentSource": "record_payment",
+      "status": "PAID",
+      "createdAt": "2026-02-24T05:45:09.532Z",
+      "updatedAt": "2026-02-24T05:45:09.532Z"
     }
   ],
-  "nextPaymentNumber": 91
+  "nextPaymentNumber": 92
 }

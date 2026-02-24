@@ -52,7 +52,7 @@
       "status": "PAID",
       "pdfTemplate": "Standard Template",
       "createdAt": "2026-02-23T07:18:58.042Z",
-      "updatedAt": "2026-02-24T05:01:31.729Z",
+      "updatedAt": "2026-02-24T05:44:35.548Z",
       "createdBy": "Admin User",
       "activityLogs": [
         {
@@ -86,6 +86,13 @@
         {
           "id": "1771909291729",
           "timestamp": "2026-02-24T05:01:31.729Z",
+          "action": "receipt_sent",
+          "description": "Payment receipt sent by vendor (Status: Verified)",
+          "user": "Vendor"
+        },
+        {
+          "id": "1771911875548",
+          "timestamp": "2026-02-24T05:44:35.548Z",
           "action": "receipt_sent",
           "description": "Payment receipt sent by vendor (Status: Verified)",
           "user": "Vendor"
@@ -768,6 +775,87 @@
           "appliedDate": "2026-02-09"
         }
       ]
+    },
+    {
+      "id": "1771911762640",
+      "vendorId": "4",
+      "vendorName": "priyanka k",
+      "billNumber": "18",
+      "orderNumber": "PO-2025-0010",
+      "billDate": "2026-02-24",
+      "dueDate": "2026-02-24",
+      "paymentTerms": "Due on Receipt",
+      "reverseCharge": false,
+      "subject": "Bill for Purchase Order #PO-2025-0010",
+      "notes": "",
+      "items": [
+        {
+          "id": "item-1771911892479-0",
+          "itemName": "phone",
+          "itemId": "1771395226932",
+          "description": "ajfa",
+          "account": "advance_tax",
+          "quantity": 1,
+          "rate": 25000,
+          "tax": "gst_18",
+          "taxAmount": 0,
+          "customerDetails": "none",
+          "amount": 25000,
+          "unit": "pcs",
+          "hsnSac": ""
+        }
+      ],
+      "subTotal": 25000,
+      "discountType": "percent",
+      "discountValue": 0,
+      "discountAmount": 0,
+      "taxType": "TDS",
+      "taxCategory": "none",
+      "taxAmount": 0,
+      "tcsType": "TCS",
+      "tcsCategory": "none",
+      "tcsValue": 0,
+      "tdsValue": 0,
+      "adjustment": 0,
+      "adjustmentDescription": "",
+      "total": 25000,
+      "purchaseOrderId": "1771910312648",
+      "selectedPurchaseOrderId": "1771910312648",
+      "attachments": [],
+      "tcsAmount": 0,
+      "tdsAmount": 0,
+      "balanceDue": 10000,
+      "status": "PARTIALLY_PAID",
+      "createdBy": "vendor",
+      "createdAt": "2026-02-24T05:42:42.640Z",
+      "updatedAt": "2026-02-24T05:45:09.532Z",
+      "paymentReceiptStatus": "Verified",
+      "activityLogs": [
+        {
+          "id": "1771911777621",
+          "timestamp": "2026-02-24T05:42:57.621Z",
+          "action": "receipt_sent",
+          "description": "Payment receipt sent by vendor (Status: Verified)",
+          "user": "Vendor"
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-02-24T05:45:09.532Z",
+          "action": "payment",
+          "description": "Payment of ₹15,000 recorded",
+          "user": "Admin User"
+        }
+      ],
+      "paymentsRecorded": [
+        {
+          "paymentId": "direct-1771911909532",
+          "paymentNumber": "PM-00091",
+          "amount": 15000,
+          "date": "2026-02-24",
+          "mode": "Cash"
+        }
+      ],
+      "amountPaid": 15000
     }
   ],
   "nextBillNumber": 18,
